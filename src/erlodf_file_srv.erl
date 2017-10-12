@@ -13,6 +13,7 @@
 %% API
 -export([
          start_link/1,
+         tag/2,
          save/1
         ]).
 
@@ -42,6 +43,9 @@
 start_link(FileTuple) ->
     gen_server:start_link(?MODULE, [FileTuple], []).
 
+tag(PID, Tag) ->
+    gen_server:call(PID, {tag, Tag}).
+
 save(PID) -> 
     gen_server:call(PID, save).
 
@@ -61,7 +65,7 @@ save(PID) ->
 %% @end
 %%--------------------------------------------------------------------
 init([{Filename, Data}]) ->
-    XML = xmerl_scan:string(binary_to_list(Data)),
+    {XML, _R} = xmerl_scan:string(binary_to_list(Data)),
     {ok, #odf_file{
             name=Filename,
             data=Data,
@@ -82,6 +86,8 @@ init([{Filename, Data}]) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+handle_call({tag, TagName}, _From, State) ->
+    {reply, handle_tag(TagName, State), State};
 handle_call(save, _From, State) ->
     {reply, handle_save(State), State};
 handle_call(Request, _From, State) ->
@@ -143,6 +149,9 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+handle_tag(TagName, #odf_file{xml=XML}) ->
+    {ok, xmerl_xpath:string(TagName, XML)}.
+
 handle_save(#odf_file{modified=false, data=Data}) ->
     {ok, Data};
 handle_save(#odf_file{modified=true, xml=XML}) ->

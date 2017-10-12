@@ -13,6 +13,8 @@
 %% API
 -export([
          start_link/2,
+         body/1,
+         style/1,
          save/1
         ]).
 
@@ -41,6 +43,12 @@
 %%--------------------------------------------------------------------
 start_link(Filename, Sup) ->
     gen_server:start_link(?MODULE, [Filename, Sup], []).
+
+body(Pid) -> 
+    gen_server:call(Pid, body).
+
+style(Pid) -> 
+    gen_server:call(Pid, style).
 
 save(Pid) -> 
     gen_server:call(Pid, save).
@@ -101,6 +109,16 @@ handle_call(save, _From, #odf_document{path=Filename,
     Files = [erlodf_file_srv:save(Pid) || {_, Pid, worker, _} <- FilePs],
     %Zip = zip:create(Filename, Files, [memory]),
     {reply, Files, State};
+
+handle_call(body, _From, #odf_document{files_sup=FilesSup}=State) ->
+    PID = get_file("content.xml", FilesSup),
+    Body = erlodf_file_srv:tag(PID, "office:body"),
+    {reply, Body, State};
+
+handle_call(style, _From, #odf_document{files_sup=FilesSup}=State) ->
+    PID = get_file("style.xml", FilesSup),
+    Body = erlodf_file_srv:tag(PID, "office:document-styles"),
+    {reply, Body, State};
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
@@ -180,3 +198,7 @@ open(Data, #odf_document{document_sup=Parent}=State) ->
                 files=Files,
                 files_sup=Sup
                }}.
+get_file(Fname, FilesSup) ->
+    Files = supervisor:which_children(FilesSup),
+    {{file, Fname}, PID, worker, _} = lists:keyfind({file, Fname}, 1, Files),
+    PID.

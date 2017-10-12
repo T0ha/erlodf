@@ -25,3 +25,10 @@
          xml :: xmerl:document(),
          modified=false :: boolean()
         }).
+-record(ods_sheet,
+        {
+         name :: string(),
+         document :: pid(),
+         file :: pid(),
+         xml :: xmerl:xmlElement()
+        }).
