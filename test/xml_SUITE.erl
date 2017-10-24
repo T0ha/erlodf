@@ -52,9 +52,21 @@ update_tree_test(C) ->
     ?assertEqual("PT23M9S", Text0),
     Node1 = erlodf_xml:update_value(Node0, "Test Value"),
     Tree = erlodf_xml:update_tree(XML, Node1),
+    ?assertEqual(XML#xmlElement.name, Tree#xmlElement.name),
+    ?assertEqual(length(XML#xmlElement.content), length(Tree#xmlElement.content)),
+    ?assertNotEqual(XML#xmlElement.content, Tree#xmlElement.content),
+
+    [Meta0|_] = xmerl_xpath:string("//office:meta", XML),
+    [Meta1|_] = xmerl_xpath:string("//office:meta", Tree),
+
+    ?assertEqual(Meta0#xmlElement.name, Meta1#xmlElement.name),
+    ?assertEqual(length(Meta0#xmlElement.content), length(Meta1#xmlElement.content)),
+    ?assertNotEqual(Meta0#xmlElement.content, Meta1#xmlElement.content),
+
     [Node2, Node3] = xmerl_xpath:string("//meta:editing-duration", Tree),
     {ok, Text1} = erlodf_xml:value(Node2),
     {ok, Text2} = erlodf_xml:value(Node3),
+    [_] = xmerl_xpath:string("//test", Tree),
     ?assertNotEqual("PT23M9S", Text1),
     ?assertEqual("PT23M9S2", Text2),
     ?assertEqual("Test Value", Text1).

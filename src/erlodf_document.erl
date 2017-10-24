@@ -14,6 +14,7 @@
 -export([
          start_link/2,
          body/1,
+         update_body/2,
          style/1,
          save/1
         ]).
@@ -46,6 +47,9 @@ start_link(Filename, Sup) ->
 
 body(Pid) -> 
     gen_server:call(Pid, body).
+
+update_body(Pid, Node) -> 
+    gen_server:cast(Pid, {update_body, Node}).
 
 style(Pid) -> 
     gen_server:call(Pid, style).
@@ -103,12 +107,14 @@ init([Filename, Parent]) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_call(save, _From, #odf_document{path=Filename, 
+                                       files=OldFiles,
                                        files_sup=FilesSup}=State) ->
 
     FilePs = supervisor:which_children(FilesSup),
-    Files = [erlodf_file_srv:save(Pid) || {_, Pid, worker, _} <- FilePs],
-    %Zip = zip:create(Filename, Files, [memory]),
-    {reply, Files, State};
+    NewFiles = [erlodf_file_srv:save(Pid) || {_, Pid, worker, _} <- FilePs],
+    Files = lists:ukeymerge(1, NewFiles, OldFiles),
+    Zip = zip:create(Filename, Files, [memory]),
+    {reply, Zip, State};
 
 handle_call(body, _From, #odf_document{files_sup=FilesSup}=State) ->
     PID = get_file("content.xml", FilesSup),
@@ -133,6 +139,10 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+handle_cast({update_body, Node}, #odf_document{files_sup=FilesSup}=State) ->
+    PID = get_file("content.xml", FilesSup),
+    erlodf_file_srv:update(PID, Node),
+    {noreply, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -190,12 +200,13 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 open(Data, #odf_document{document_sup=Parent}=State) ->
     Targets = ["content.xml", "styles.xml", "meta.xml", "settings.xml"],
-    {ok, Files} = zip:extract(Data, [memory, {file_list, Targets}]),
+    {ok, AllFiles} = zip:extract(Data, [memory]), %, {file_list, Targets}]),
+    Files = [F || {N, _} = F <- AllFiles, lists:member(N, Targets)],
     %lager:info("Extracted: ~p", [Files]),
     {ok, Sup} = erlodf_document_sup:add_files(Parent, Files),
     %lager:info("Started: ~p", [Sup]),
     {noreply, State#odf_document{
-                files=Files,
+                files=AllFiles,
                 files_sup=Sup
                }}.
 get_file(Fname, FilesSup) ->

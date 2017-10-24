@@ -6,9 +6,10 @@
          sheets_test/1,
          sheet_by_number_test/1,
          sheet_by_name_test/1,
-         row_test/1,
          cell_tuple_test/1,
-         cell_letter_test/1
+         cell_letter_test/1,
+         get_cell_test/1,
+         set_cell_test/1
         ]).
 
 -include_lib("common_test/include/ct.hrl").
@@ -21,7 +22,9 @@ all() ->
      sheet_by_name_test,
      sheet_by_number_test,
      cell_tuple_test,
-     cell_letter_test
+     cell_letter_test,
+     get_cell_test,
+     set_cell_test
     ].
 
 init_per_testcase(_, C) ->
@@ -51,8 +54,6 @@ sheet_by_number_test(C) ->
     Sheet = erlodf_spreadsheet:sheet(Document, 1),
     ?assertEqual(Sheet#xmlElement.name, 'table:table').
 
-row_test(C) ->
-    ok.
 
 cell_tuple_test(C) ->
     Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
@@ -71,3 +72,21 @@ cell_letter_test(C) ->
     {ok, Text} = erlodf_xml:value(Cell),
     ?assertEqual('table:table-cell', Cell#xmlElement.name),
     ?assertEqual("BTC/USDT", Text).
+
+get_cell_test(C) ->
+    Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
+    {ok, Document} = erlodf:open(Path),
+    {ok, Text} = erlodf_spreadsheet:get_cell(Document, 1, "B2"),
+    ?assertEqual("BTC/USDT", Text).
+
+set_cell_test(C) ->
+    Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
+    {ok, Document} = erlodf:open(Path),
+    Sheet = erlodf_spreadsheet:sheet(Document, 1),
+    Cell0 = erlodf_spreadsheet:cell(Sheet, {1,2}),
+    {ok, Text0} = erlodf_xml:value(Cell0),
+    ?assertEqual('table:table-cell', Cell0#xmlElement.name),
+    ?assertEqual("Market", Text0),
+    erlodf_spreadsheet:set_cell(Document, 1, {1, 2}, "Check Me", text),
+    {ok, Text1} = erlodf_spreadsheet:get_cell(Document, 1, {1, 2}),
+    ?assertEqual("Check Me", Text1).

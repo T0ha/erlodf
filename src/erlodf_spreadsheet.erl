@@ -15,7 +15,8 @@
          sheet/2,
          cell/2,
          cell/3,
-         get_cell/3
+         get_cell/3,
+         set_cell/5
         ]).
 
 
@@ -73,8 +74,7 @@ get_cell(PID, Sheet, RC) ->
     Cell = cell(PID, Sheet, RC),
     erlodf_xml:value(Cell).
 
-%set_cell(PID, Sheet, Cell, Value, Type) ->
-%    Cell = cell(PID, Sheet, Cell),
-%    Content = Cell#xmlElement.content,
-%    
-%    NewCell = Cell#xmlElement{content=[
+set_cell(PID, Sheet, Cell, Value, Type) ->
+    Cell0 = cell(PID, Sheet, Cell),
+    Cell1 = erlodf_xml:update_value(Cell0, Value, Type),
+    erlodf_document:update_body(PID, Cell1).

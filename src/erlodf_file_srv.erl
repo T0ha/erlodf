@@ -14,6 +14,7 @@
 -export([
          start_link/1,
          tag/2,
+         update/2,
          save/1
         ]).
 
@@ -25,9 +26,8 @@
          terminate/2,
          code_change/3]).
 
--define(SERVER, ?MODULE).
-
 -include("odf.hrl").
+-include_lib("xmerl/include/xmerl.hrl").
 
 %%%===================================================================
 %%% API
@@ -45,6 +45,9 @@ start_link(FileTuple) ->
 
 tag(PID, Tag) ->
     gen_server:call(PID, {tag, Tag}).
+
+update(PID, Node) ->
+    gen_server:cast(PID, {update, Node}).
 
 save(PID) -> 
     gen_server:call(PID, save).
@@ -105,6 +108,8 @@ handle_call(Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+handle_cast({update, Node}, State) ->
+    {noreply, handle_update(Node, State)};
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -152,10 +157,15 @@ code_change(_OldVsn, State, _Extra) ->
 handle_tag(TagName, #odf_file{xml=XML}) ->
     {ok, xmerl_xpath:string(TagName, XML)}.
 
-handle_save(#odf_file{modified=false, data=Data}) ->
-    {ok, Data};
-handle_save(#odf_file{modified=true, xml=XML}) ->
-     xmerl:export_simple([XML], xmerl_xml).
+handle_update(Node, #odf_file{xml=XML}=State) ->
+    XML1 = erlodf_xml:update_tree(XML, Node),
+    State#odf_file{xml=XML1, modified=true}.
+
+handle_save(#odf_file{name=Filename, modified=false, data=Data}) ->
+    {Filename, Data};
+handle_save(#odf_file{name=Filename, modified=true, xml=XML}) ->
+    Binary = unicode:characters_to_binary(xmerl:export_simple([XML], xmerl_xml)),
+    {Filename, Binary}.
 
 
 
