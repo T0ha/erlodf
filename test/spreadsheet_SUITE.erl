@@ -68,10 +68,10 @@ cell_letter_test(C) ->
     Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
     {ok, Document} = erlodf:open(Path),
     Sheet = erlodf_spreadsheet:sheet(Document, 1),
-    Cell = erlodf_spreadsheet:cell(Sheet, "B2"),
+    Cell = erlodf_spreadsheet:cell(Sheet, "B3"),
     {ok, Text} = erlodf_xml:value(Cell),
     ?assertEqual('table:table-cell', Cell#xmlElement.name),
-    ?assertEqual("BTC/USDT", Text).
+    ?assertEqual("XMR/BTC", Text).
 
 get_cell_test(C) ->
     Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
