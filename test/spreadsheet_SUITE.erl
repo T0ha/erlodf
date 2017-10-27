@@ -87,6 +87,6 @@ set_cell_test(C) ->
     {ok, Text0} = erlodf_xml:value(Cell0),
     ?assertEqual('table:table-cell', Cell0#xmlElement.name),
     ?assertEqual("Market", Text0),
-    erlodf_spreadsheet:set_cell(Document, 1, {1, 2}, "Check Me", text),
+    Document = erlodf_spreadsheet:set_cell(Document, 1, {1, 2}, "Check Me", text),
     {ok, Text1} = erlodf_spreadsheet:get_cell(Document, 1, {1, 2}),
     ?assertEqual("Check Me", Text1).

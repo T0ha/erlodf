@@ -77,4 +77,5 @@ get_cell(PID, Sheet, RC) ->
 set_cell(PID, Sheet, Cell, Value, Type) ->
     Cell0 = cell(PID, Sheet, Cell),
     Cell1 = erlodf_xml:update_value(Cell0, Value, Type),
-    erlodf_document:update_body(PID, Cell1).
+    erlodf_document:update_body(PID, Cell1),
+    PID.
