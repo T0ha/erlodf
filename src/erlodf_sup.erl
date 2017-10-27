@@ -18,7 +18,7 @@
 -define(SERVER, ?MODULE).
 -define(CHILD(Id, Mod, Type, Args),
         {Id, {Mod, start_link, Args},
-         permanent, 2000, Type, [Mod]}).
+         temporary, 2000, Type, [Mod]}).
 
 %%====================================================================
 %% API functions
