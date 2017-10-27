@@ -16,6 +16,7 @@ all() ->
     [
      value_test,
      update_value_test,
+     update_empty_value_test,
      update_tree_test
     ].
 

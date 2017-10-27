@@ -165,6 +165,7 @@ handle_save(#odf_file{name=Filename, modified=false, data=Data}) ->
     {Filename, Data};
 handle_save(#odf_file{name=Filename, modified=true, xml=XML}) ->
     Binary = unicode:characters_to_binary(xmerl:export_simple([XML], xmerl_xml)),
+    file:write_file("out/" ++ Filename, Binary),
     {Filename, Binary}.
 
 

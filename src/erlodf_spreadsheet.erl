@@ -16,6 +16,7 @@
          cell/2,
          cell/3,
          get_cell/3,
+         set_cell/4,
          set_cell/5
         ]).
 
@@ -73,6 +74,9 @@ cell(Sheet, {R, C}) ->
 get_cell(PID, Sheet, RC) ->
     Cell = cell(PID, Sheet, RC),
     erlodf_xml:value(Cell).
+
+set_cell(PID, Sheet, Cell, Value) ->
+    set_cell(PID, Sheet, Cell, Value, text).
 
 set_cell(PID, Sheet, Cell, Value, Type) ->
     Cell0 = cell(PID, Sheet, Cell),

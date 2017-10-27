@@ -41,7 +41,9 @@ update_value(#xmlElement{content=Childs}=Node, Value, Type) ->
 update_value([Child], Value, Type) ->
     [update_value(Child, Value, Type)];
 update_value([], Value, Type) ->
-    update_value(#xmlText{}, Value, Type);
+    Node = #xmlElement{name='text:p',
+                       content=[#xmlText{}]},
+    update_value([Node], Value, Type);
 update_value(_Nodes, _Value, _Type) ->
     {error, "Bad input"}.
 
