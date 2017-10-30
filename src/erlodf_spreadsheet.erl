@@ -63,9 +63,9 @@ cell(PID, Sheet, RC) ->
       Sheet :: #xmlElement{},
       R :: non_neg_integer(),
       C :: non_neg_integer().
-cell(Sheet, [RL, CN]) -> 
+cell(Sheet, [RL | CN]) -> 
     [RU] = string:uppercase([RL]),
-    RC = {CN - $0, RU - $A + 1},
+    RC = {list_to_integer(CN), RU - $A + 1},
     cell(Sheet, RC);
 cell(Sheet, {R, C}) -> 
     Row = lists:nth(R, xmerl_xpath:string(".//table:table-row", Sheet)),
