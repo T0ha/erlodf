@@ -68,8 +68,8 @@ cell(Sheet, [RL | CN]) ->
     RC = {list_to_integer(CN), RU - $A + 1},
     cell(Sheet, RC);
 cell(Sheet, {R, C}) -> 
-    Row = lists:nth(R, xmerl_xpath:string(".//table:table-row", Sheet)),
-    lists:nth(C, xmerl_xpath:string(".//table:table-cell", Row)).
+    Row = get_nth_with_repeated('table:number-rows-repeated', xmerl_xpath:string(".//table:table-row", Sheet), R), 
+    get_nth_with_repeated('table:number-columns-repeated', xmerl_xpath:string(".//table:table-cell | //table:covered-table-cell", Row), C).
 
 get_cell(PID, Sheet, RC) ->
     Cell = cell(PID, Sheet, RC),
@@ -83,3 +83,22 @@ set_cell(PID, Sheet, Cell, Value, Type) ->
     Cell1 = erlodf_xml:update_value(Cell0, Value, Type),
     erlodf_document:update_body(PID, Cell1),
     PID.
+
+get_nth_with_repeated(Tag, Nodes, R) -> 
+    lists:foldl(
+      fun(Current, N) when is_integer(N), N >= R ->
+              Current;
+         (_, #xmlElement{}=New) ->
+              New;
+         (Current, N) -> 
+              Repeated = erlodf_xml:attribute(Tag, Current, "1"),
+              case N + list_to_integer(Repeated) of
+                  Next when Next < R ->
+                      Next;
+                  Next when Next >= R ->
+                      erlodf_xml:update_attribute(Tag, Current, "1")
+              end
+      end,
+      0,
+      Nodes).
+

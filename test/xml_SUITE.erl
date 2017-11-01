@@ -4,6 +4,9 @@
          init_per_testcase/2,
          end_per_testcase/2,
          value_test/1,
+         attribute_test/1,
+         update_attribute_test/1,
+         update_attribute_new_test/1,
          update_value_test/1,
          update_tree_test/1
         ]).
@@ -15,8 +18,11 @@
 all() ->
     [
      value_test,
+     attribute_test,
+     update_attribute_test,
+     update_attribute_new_test,
      update_value_test,
-     update_empty_value_test,
+     %update_empty_value_test,
      update_tree_test
     ].
 
@@ -34,6 +40,36 @@ value_test(C) ->
     [Node|_] = xmerl_xpath:string("//meta:editing-duration", XML),
     {ok, Text} = erlodf_xml:value(Node),
     ?assertEqual("PT23M9S", Text).
+
+attribute_test(C) ->
+    Path = proplists:get_all_values(data_dir, C) ++ "/meta.xml",
+    {XML, _} = xmerl_scan:file(Path),
+    [Node|_] = xmerl_xpath:string("//meta:generator", XML),
+    Attr = erlodf_xml:attribute('attr:test', Node, "3"),
+    ?assertEqual("Attr Ok", Attr).
+
+update_attribute_test(C) ->
+    Path = proplists:get_all_values(data_dir, C) ++ "/meta.xml",
+    {XML, _} = xmerl_scan:file(Path),
+    [Node|_] = xmerl_xpath:string("//meta:generator", XML),
+    Attr = erlodf_xml:attribute('attr:test', Node, "3"),
+    ?assertEqual("Attr Ok", Attr),
+    Node1 = erlodf_xml:update_attribute('attr:test', Node, "Attr Changed"),
+    Attr1 = erlodf_xml:attribute('attr:test', Node1, "3"),
+    ?assertEqual("Attr Changed", Attr1),
+    ?assertNotEqual("Attr Ok", Attr1).
+
+update_attribute_new_test(C) ->
+    Path = proplists:get_all_values(data_dir, C) ++ "/meta.xml",
+    {XML, _} = xmerl_scan:file(Path),
+    [Node|_] = xmerl_xpath:string("//meta:generator", XML),
+    Attr = erlodf_xml:attribute('attr:test', Node, "3"),
+    ?assertEqual("Attr Ok", Attr),
+    Node1 = erlodf_xml:update_attribute('attr:new', Node, "Attr New"),
+    AttrOld = erlodf_xml:attribute('attr:test', Node1, "3"),
+    AttrNew = erlodf_xml:attribute('attr:new', Node1, "3"),
+    ?assertEqual("Attr New", AttrNew),
+    ?assertEqual("Attr Ok", AttrOld).
 
 update_value_test(C) -> 
     Path = proplists:get_all_values(data_dir, C) ++ "/meta.xml",

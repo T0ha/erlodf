@@ -14,6 +14,8 @@
 -export([
          value/1,
          attribute/2,
+         attribute/3,
+         update_attribute/3,
          update_value/2,
          update_value/3,
          update_tree/2,
@@ -67,5 +69,23 @@ replace_nth([H|Content], 1, Node, Rest) ->
 replace_nth([H|Content], N, Node, Rest) ->
     [H | replace_nth(Content, N - 1, Node, Rest)].
 
-attribute(XML, AttrName) ->
-    ok.
+attribute(AttrName, Node) ->
+    attribute(AttrName, Node, undefined).
+
+attribute(AttrName, #xmlElement{attributes=Attrs}, Default) ->
+    case lists:keyfind(AttrName, #xmlAttribute.name, Attrs) of
+        false -> Default;
+        #xmlAttribute{value=Value} -> Value
+    end.
+
+update_attribute(Attr, #xmlElement{attributes=Attrs}=Node, Value) -> 
+    case lists:keyfind(Attr, #xmlAttribute.name, Attrs) of
+        false ->
+            A = #xmlAttribute{name=Attr, value=Value},
+            Node#xmlElement{attributes=[A | Attrs]};
+        #xmlAttribute{} = A0 -> 
+            A = A0#xmlAttribute{value=Value},
+            Attrs1 = lists:keyreplace(Attr, #xmlAttribute.name, Attrs, A),
+            Node#xmlElement{attributes=Attrs1}
+    end.
+
