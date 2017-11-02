@@ -13,7 +13,6 @@
          sheets/1,
          sheet_names/1,
          sheet/2,
-         cell/2,
          cell/3,
          get_cell/3,
          set_cell/4,
@@ -52,24 +51,23 @@ sheet(PID, Name) when is_list(Name) ->
     [Sheet] = xmerl_xpath:string(lists:flatten(io_lib:format("//table:table[@table:name='~s']", [Name])), Body),
     Sheet.
 
--spec cell(pid(), Sheet, {R, C}) -> #xmlElement{} when 
+-spec cell(pid(), Sheet, RC) -> #xmlElement{} when 
       Sheet :: string(),
+      RC :: {R, C} | string(),
       R :: non_neg_integer(),
       C :: non_neg_integer().
-cell(PID, Sheet, RC) ->
-    cell(sheet(PID, Sheet), RC).
-
--spec cell(Sheet, {R, C}) -> #xmlElement{} when 
-      Sheet :: #xmlElement{},
-      R :: non_neg_integer(),
-      C :: non_neg_integer().
-cell(Sheet, [RL | CN]) -> 
+cell(PID, Sheet, [RL | CN]) -> 
     [RU] = string:uppercase([RL]),
     RC = {list_to_integer(CN), RU - $A + 1},
-    cell(Sheet, RC);
-cell(Sheet, {R, C}) -> 
-    Row = get_nth_with_repeated('table:number-rows-repeated', xmerl_xpath:string(".//table:table-row", Sheet), R), 
-    get_nth_with_repeated('table:number-columns-repeated', xmerl_xpath:string(".//table:table-cell | //table:covered-table-cell", Row), C).
+    cell(PID, Sheet, RC);
+cell(PID, SheetName, {R, C}) -> 
+    Sheet = sheet(PID, SheetName),
+    Row = fix_multiple(
+            get_nth_with_repeated('table:number-rows-repeated', xmerl_xpath:string(".//table:table-row", Sheet), R), 
+            PID),
+    fix_multiple(
+      get_nth_with_repeated('table:number-columns-repeated', xmerl_xpath:string(".//table:table-cell | //table:covered-table-cell", Row), C),
+      PID).
 
 get_cell(PID, Sheet, RC) ->
     Cell = cell(PID, Sheet, RC),
@@ -90,15 +88,35 @@ get_nth_with_repeated(Tag, Nodes, R) ->
               Current;
          (_, #xmlElement{}=New) ->
               New;
-         (Current, N) -> 
-              Repeated = erlodf_xml:attribute(Tag, Current, "1"),
-              case N + list_to_integer(Repeated) of
+         (_, New) when is_list(New) ->
+              New;
+         (#xmlElement{pos=XMLPos}=Current, N) -> 
+              Repeated = list_to_integer(
+                           erlodf_xml:attribute(Tag, Current, "1")),
+
+              case N + Repeated of
                   Next when Next < R ->
                       Next;
-                  Next when Next >= R ->
-                      erlodf_xml:update_attribute(Tag, Current, "1")
+                  Next when Next == R ->
+                      Current;
+				  Next when Next > R ->
+                      Pos = lists:zip(lists:seq(0, 2), [ R - N - 1, 1, Repeated - R + N - 1 ]),
+                      lists:map(
+                        fun({P, Rpt}) ->
+                                PStr = integer_to_list(Rpt),
+                                erlodf_xml:update_attribute(Tag, Current#xmlElement{pos=XMLPos + P}, PStr)
+                        end,
+                        Pos)
               end
       end,
       0,
       Nodes).
 
+fix_multiple(Nodes, PID) when is_list(Nodes) ->
+    lists:foreach(fun(Node) ->
+                          erlodf_document:update_body(PID, Node)
+                  end,
+                  Nodes),
+    lists:nth(2, Nodes);
+fix_multiple(#xmlElement{}=Node, _PID) ->
+    Node.

@@ -62,6 +62,8 @@ update_tree(#xmlElement{content=Content}=XML, Node, [{_SubTag, N}|Rest]) ->
     Content1 = replace_nth(Content, N, Node, Rest),
     XML#xmlElement{content=Content1}.
 
+replace_nth([], 1, Node, []) ->
+    [Node];
 replace_nth([Content], 1, Node, Rest) ->
     [update_tree(Content, Node, Rest)];
 replace_nth([H|Content], 1, Node, Rest) ->

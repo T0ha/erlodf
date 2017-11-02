@@ -64,8 +64,7 @@ sheet_by_number_test(C) ->
 cell_tuple_test(C) ->
     Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
     {ok, Document} = erlodf:open(Path),
-    Sheet = erlodf_spreadsheet:sheet(Document, 1),
-    Cell = erlodf_spreadsheet:cell(Sheet, {1,2}),
+    Cell = erlodf_spreadsheet:cell(Document, 1, {1,2}),
     {ok, Text} = erlodf_xml:value(Cell),
     ?assertEqual('table:table-cell', Cell#xmlElement.name),
     ?assertEqual("Market", Text).
@@ -73,8 +72,7 @@ cell_tuple_test(C) ->
 cell_letter_test(C) ->
     Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
     {ok, Document} = erlodf:open(Path),
-    Sheet = erlodf_spreadsheet:sheet(Document, 1),
-    Cell = erlodf_spreadsheet:cell(Sheet, "B3"),
+    Cell = erlodf_spreadsheet:cell(Document, 1, "B3"),
     {ok, Text} = erlodf_xml:value(Cell),
     ?assertEqual('table:table-cell', Cell#xmlElement.name),
     ?assertEqual("XMR/BTC", Text).
@@ -94,8 +92,7 @@ get_merged_cols_cell_test(C) ->
 change_cell_test(C) ->
     Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
     {ok, Document} = erlodf:open(Path),
-    Sheet = erlodf_spreadsheet:sheet(Document, 1),
-    Cell0 = erlodf_spreadsheet:cell(Sheet, {1,2}),
+    Cell0 = erlodf_spreadsheet:cell(Document, 1, {1,2}),
     {ok, Text0} = erlodf_xml:value(Cell0),
     ?assertEqual('table:table-cell', Cell0#xmlElement.name),
     ?assertEqual("Market", Text0),
@@ -106,8 +103,7 @@ change_cell_test(C) ->
 set_cell_test(C) ->
     Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
     {ok, Document} = erlodf:open(Path),
-    Sheet = erlodf_spreadsheet:sheet(Document, 1),
-    Cell0 = erlodf_spreadsheet:cell(Sheet, "F8"),
+    Cell0 = erlodf_spreadsheet:cell(Document, 1, "F8"),
     empty = erlodf_xml:value(Cell0),
     ?assertEqual('table:table-cell', Cell0#xmlElement.name),
     %?assertEqual("", Text0),
