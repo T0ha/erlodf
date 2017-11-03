@@ -96,10 +96,13 @@ get_nth_with_repeated(Tag, Nodes, R) ->
 
               case N + Repeated of
                   Next when Next < R ->
+                      io:format("Next1: ~p~n", [Next]),
                       Next;
                   Next when Next == R ->
+                      io:format("Next2: ~p~n", [Next]),
                       Current;
 				  Next when Next > R ->
+                      io:format("Next3: ~p~n", [Next]),
                       Pos = lists:zip(lists:seq(0, 2), [ R - N - 1, 1, Repeated - R + N - 1 ]),
                       lists:map(
                         fun({P, Rpt}) ->
