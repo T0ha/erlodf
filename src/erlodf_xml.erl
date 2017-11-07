@@ -49,27 +49,31 @@ update_value([], Value, Type) ->
 update_value(_Nodes, _Value, _Type) ->
     {error, "Bad input"}.
 
-update_tree(XML, #xmlElement{parents=Parent}=Node) ->
-    update_tree(XML, Node, lists:reverse(Parent)).
+update_tree(XML, #xmlElement{}=Node) ->
+    update_tree(XML, [Node]);
+update_tree(XML, [#xmlElement{parents=Parent}|_]=Nodes) ->
+    update_tree(XML, Nodes, lists:reverse(Parent)).
 
-update_tree(#xmlElement{name=Tag}, #xmlElement{name=Tag}=Node, []) ->
-    Node;
-update_tree(#xmlElement{content=Content}=XML, #xmlElement{pos=N}=Node, []) ->
-    XML#xmlElement{content=replace_nth(Content, N, Node, [])};
-update_tree(#xmlElement{name=Tag}=XML, Node, [{Tag, _N}|Rest]) ->
-    update_tree(XML, Node, Rest);
-update_tree(#xmlElement{content=Content}=XML, Node, [{_SubTag, N}|Rest]) ->
-    Content1 = replace_nth(Content, N, Node, Rest),
+update_tree(#xmlElement{name=Tag}, [#xmlElement{name=Tag}|_]=Nodes, []) ->
+    Nodes;
+update_tree(#xmlElement{content=Content}=XML, [#xmlElement{pos=N}|_]=Nodes, []) ->
+    XML#xmlElement{content=replace_nth(Content, N, Nodes, [])};
+update_tree(#xmlElement{name=Tag}=XML, Nodes, [{Tag, _N}|Rest]) ->
+    update_tree(XML, Nodes, Rest);
+update_tree(#xmlElement{content=Content}=XML, Nodes, [{_SubTag, N}|Rest]) ->
+    Content1 = replace_nth(Content, N, Nodes, Rest),
     XML#xmlElement{content=Content1}.
 
-replace_nth([], 1, Node, []) ->
-    [Node];
-replace_nth([Content], 1, Node, Rest) ->
-    [update_tree(Content, Node, Rest)];
-replace_nth([H|Content], 1, Node, Rest) ->
-    [update_tree(H, Node, Rest) | Content];
-replace_nth([H|Content], N, Node, Rest) ->
-    [H | replace_nth(Content, N - 1, Node, Rest)].
+replace_nth([], 1, Nodes, []) ->
+    Nodes;
+replace_nth([_], 1, Nodes, []) ->
+    Nodes;
+replace_nth([Content], 1, Nodes, Rest) ->
+    [update_tree(Content, Nodes, Rest)];
+replace_nth([H|Content], 1, Nodes, Rest) ->
+    [update_tree(H, Nodes, Rest) | Content];
+replace_nth([H|Content], N, Nodes, Rest) ->
+    lists:flatten([H | replace_nth(Content, N - 1, Nodes, Rest)]).
 
 attribute(AttrName, Node) ->
     attribute(AttrName, Node, undefined).

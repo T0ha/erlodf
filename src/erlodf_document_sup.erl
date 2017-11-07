@@ -41,7 +41,7 @@ start_link(Path) ->
     supervisor:start_link(?MODULE, [Path]).
 
 add_files(Pid, Files) ->
-    Children = ?CHILD(Files, erlodf_files_sup, supervisor, [Files]),
+    Children = ?CHILD(Files, erlodf_files_sup, supervisor, [Pid, Files]),
     %lager:info("Starting sup: ~p", [Children]),
     supervisor:start_child(Pid, Children).
 

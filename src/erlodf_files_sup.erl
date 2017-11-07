@@ -11,7 +11,7 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/1]).
+-export([start_link/2]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -29,8 +29,8 @@
 %% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
-start_link(Files) ->
-    supervisor:start_link(?MODULE, [Files]).
+start_link(Pid, Files) ->
+    supervisor:start_link(?MODULE, [Pid, Files]).
 
 %%%===================================================================
 %%% Supervisor callbacks
@@ -49,7 +49,7 @@ start_link(Files) ->
 %%                     {error, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init([Files]) ->
+init([Pid, Files]) ->
     RestartStrategy = one_for_one,
     MaxRestarts = 1000,
     MaxSecondsBetweenRestarts = 3600,
@@ -60,7 +60,7 @@ init([Files]) ->
     Shutdown = 2000,
     Type = worker,
 
-    Children = [{{file, File}, {'erlodf_file_srv', start_link, [{File, Data}]},
+    Children = [{{file, Pid, File}, {'erlodf_file_srv', start_link, [{File, Data}]},
                  Restart, Shutdown, Type, ['erlodf_file_srv']}
                 || {File, Data} <- Files],
 

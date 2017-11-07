@@ -3,7 +3,8 @@
 -export([
          %new/0,
          open/1, 
-         save/1
+         save/1,
+         close/1
         ]).
 
 -include("odf.hrl").
@@ -20,4 +21,9 @@ save(PID) when is_pid(PID) ->
 save(Fname) ->
     save(ets:lookup_element(erlodf_documents, Fname, 2)).
 
+-spec close(pid() | file:filename_all())-> binary().
+close(PID) when is_pid(PID) ->
+    erlodf_document:close(PID);
+close(Fname) ->
+    close(ets:lookup_element(erlodf_documents, Fname, 2)).
 

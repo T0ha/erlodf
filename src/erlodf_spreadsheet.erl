@@ -103,11 +103,18 @@ get_nth_with_repeated(Tag, Nodes, R) ->
                       Current;
 				  Next when Next > R ->
                       io:format("Next3: ~p~n", [Next]),
-                      Pos = lists:zip(lists:seq(0, 2), [ R - N - 1, 1, Repeated - R + N - 1 ]),
-                      lists:map(
-                        fun({P, Rpt}) ->
+                      Pos0 = lists:filter(fun(X) -> X /= 0 end,
+                                          [ R - N - 1, 1, Repeated - R + N  ]),
+                      io:format("Pos0: ~p~n", [Pos0]),
+                      Pos = lists:zip(lists:seq(0, length(Pos0)-1), Pos0),
+                      io:format("Pos: ~p~n", [Pos]),
+                      lists:filtermap(
+                        fun({_, 0}) ->
+                                false;
+                            ({P, Rpt}) ->
                                 PStr = integer_to_list(Rpt),
-                                erlodf_xml:update_attribute(Tag, Current#xmlElement{pos=XMLPos + P}, PStr)
+                                {true,
+                                 erlodf_xml:update_attribute(Tag, Current#xmlElement{pos=XMLPos + P}, PStr)}
                         end,
                         Pos)
               end
@@ -115,6 +122,10 @@ get_nth_with_repeated(Tag, Nodes, R) ->
       0,
       Nodes).
 
+fix_multiple([Node], PID) ->
+    fix_multiple(Node, PID);
+fix_multiple([Node], PID) ->
+    fix_multiple(Node, PID);
 fix_multiple(Nodes, PID) when is_list(Nodes) ->
     lists:foreach(fun(Node) ->
                           erlodf_document:update_body(PID, Node)

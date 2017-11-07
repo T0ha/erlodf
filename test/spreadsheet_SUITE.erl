@@ -97,7 +97,11 @@ change_cell_test(C) ->
     ?assertEqual('table:table-cell', Cell0#xmlElement.name),
     ?assertEqual("Market", Text0),
     Document = erlodf_spreadsheet:set_cell(Document, 1, {1, 2}, "Check Me", text),
-    {ok, Text1} = erlodf_spreadsheet:get_cell(Document, 1, {1, 2}),
+    Binary = erlodf:save(Document),
+    ok=erlodf:close(Document),
+
+    {ok, Document1} = erlodf:open(Binary),
+    {ok, Text1} = erlodf_spreadsheet:get_cell(Document1, 1, {1, 2}),
     ?assertEqual("Check Me", Text1).
 
 set_cell_test(C) ->

@@ -16,7 +16,8 @@
          body/1,
          update_body/2,
          style/1,
-         save/1
+         save/1,
+         close/1
         ]).
 
 %% gen_server callbacks
@@ -57,6 +58,9 @@ style(Pid) ->
 save(Pid) -> 
     {ok, {_, Binary}} = gen_server:call(Pid, save),
     Binary.
+
+close(Pid) -> 
+    gen_server:cast(Pid, close).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -112,18 +116,21 @@ handle_call(save, _From, #odf_document{path=Filename,
                                        files_sup=FilesSup}=State) ->
 
     FilePs = supervisor:which_children(FilesSup),
-    NewFiles = [erlodf_file_srv:save(Pid) || {_, Pid, worker, _} <- FilePs],
-    Files = lists:ukeymerge(1, NewFiles, OldFiles),
+    NewFiles = lists:keysort(1, [erlodf_file_srv:save(Pid) || {_, Pid, worker, _} <- FilePs]),
+    Files = lists:ukeymerge(1, NewFiles, lists:keysort(1, OldFiles)),
+    io:format("FIles: ~p", [[X || {X, _} <- Files]]),
     Zip = zip:create(Filename, Files, [memory]),
     {reply, Zip, State};
 
-handle_call(body, _From, #odf_document{files_sup=FilesSup}=State) ->
-    PID = get_file("content.xml", FilesSup),
+handle_call(body, _From, #odf_document{document_sup=DocumentSup, 
+                                       files_sup=FilesSup}=State) ->
+    PID = get_file("content.xml", DocumentSup, FilesSup),
     Body = erlodf_file_srv:tag(PID, "office:body"),
     {reply, Body, State};
 
-handle_call(style, _From, #odf_document{files_sup=FilesSup}=State) ->
-    PID = get_file("style.xml", FilesSup),
+handle_call(style, _From, #odf_document{document_sup=DocumentSup, 
+                                        files_sup=FilesSup}=State) ->
+    PID = get_file("style.xml", DocumentSup, FilesSup),
     Body = erlodf_file_srv:tag(PID, "office:document-styles"),
     {reply, Body, State};
 handle_call(_Request, _From, State) ->
@@ -140,8 +147,14 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast({update_body, Node}, #odf_document{files_sup=FilesSup}=State) ->
-    PID = get_file("content.xml", FilesSup),
+handle_cast(close, #odf_document{document_sup=DocumentSup,
+                                 files_sup=FilesSup}=State) ->
+    supervisor:terminate_child(erlodf_sup, DocumentSup), 
+    supervisor:delete_child(erlodf_sup, DocumentSup), 
+    {stop, normal, State};
+handle_cast({update_body, Node}, #odf_document{document_sup=DocumentSup,
+                                               files_sup=FilesSup}=State) ->
+    PID = get_file("content.xml", DocumentSup, FilesSup),
     erlodf_file_srv:update(PID, Node),
     {noreply, State};
 handle_cast(_Msg, State) ->
@@ -210,7 +223,7 @@ open(Data, #odf_document{document_sup=Parent}=State) ->
                 files=AllFiles,
                 files_sup=Sup
                }}.
-get_file(Fname, FilesSup) ->
+get_file(Fname, DocumentSup, FilesSup) ->
     Files = supervisor:which_children(FilesSup),
-    {{file, Fname}, PID, worker, _} = lists:keyfind({file, Fname}, 1, Files),
+    {{file, _, Fname}, PID, worker, _} = lists:keyfind({file, DocumentSup, Fname}, 1, Files),
     PID.
