@@ -47,7 +47,7 @@ tag(PID, Tag) ->
     gen_server:call(PID, {tag, Tag}).
 
 update(PID, Node) ->
-    gen_server:cast(PID, {update, Node}).
+    gen_server:call(PID, {update, Node}).
 
 save(PID) -> 
     gen_server:call(PID, save).
@@ -89,6 +89,8 @@ init([{Filename, Data}]) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+handle_call({update, Node}, _From, State) ->
+    {reply, Node, handle_update(Node, State)};
 handle_call({tag, TagName}, _From, State) ->
     {reply, handle_tag(TagName, State), State};
 handle_call(save, _From, State) ->

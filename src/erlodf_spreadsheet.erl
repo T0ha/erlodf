@@ -62,12 +62,8 @@ cell(PID, Sheet, [RL | CN]) ->
     cell(PID, Sheet, RC);
 cell(PID, SheetName, {R, C}) -> 
     Sheet = sheet(PID, SheetName),
-    Row = fix_multiple(
-            get_nth_with_repeated('table:number-rows-repeated', xmerl_xpath:string(".//table:table-row", Sheet), R), 
-            PID),
-    fix_multiple(
-      get_nth_with_repeated('table:number-columns-repeated', xmerl_xpath:string(".//table:table-cell | //table:covered-table-cell", Row), C),
-      PID).
+    Row = get_nth_with_repeated(Sheet, 'table:number-rows-repeated', ".//table:table-row", R, PID),
+      get_nth_with_repeated(Row, 'table:number-columns-repeated', ".//table:table-cell | //table:covered-table-cell", C, PID).
 
 get_cell(PID, Sheet, RC) ->
     Cell = cell(PID, Sheet, RC),
@@ -82,55 +78,47 @@ set_cell(PID, Sheet, Cell, Value, Type) ->
     erlodf_document:update_body(PID, Cell1),
     PID.
 
-get_nth_with_repeated(Tag, Nodes, R) -> 
-    lists:foldl(
-      fun(Current, N) when is_integer(N), N >= R ->
-              Current;
-         (_, #xmlElement{}=New) ->
-              New;
-         (_, New) when is_list(New) ->
-              New;
-         (#xmlElement{pos=XMLPos}=Current, N) -> 
-              Repeated = list_to_integer(
-                           erlodf_xml:attribute(Tag, Current, "1")),
+get_nth_with_repeated(BaseNode, Tag, XPath, R, PID) -> 
+    Nodes0 = lists:sublist(
+               xmerl_xpath:string(XPath, BaseNode),    
+               R),
+    Nodes1 = update_tree(
+               fix_pos(
+                 maybe_add_node(
+                   lists:foldl(fun(C, A) -> unpack(C, A, Tag, R) end, [], Nodes0),
+                  R)),
+              Nodes0, PID),
+    lists:nth(R, Nodes1).
 
-              case N + Repeated of
-                  Next when Next < R ->
-                      io:format("Next1: ~p~n", [Next]),
-                      Next;
-                  Next when Next == R ->
-                      io:format("Next2: ~p~n", [Next]),
-                      Current;
-				  Next when Next > R ->
-                      io:format("Next3: ~p~n", [Next]),
-                      Pos0 = lists:filter(fun(X) -> X /= 0 end,
-                                          [ R - N - 1, 1, Repeated - R + N  ]),
-                      io:format("Pos0: ~p~n", [Pos0]),
-                      Pos = lists:zip(lists:seq(0, length(Pos0)-1), Pos0),
-                      io:format("Pos: ~p~n", [Pos]),
-                      lists:filtermap(
-                        fun({_, 0}) ->
-                                false;
-                            ({P, Rpt}) ->
-                                PStr = integer_to_list(Rpt),
-                                {true,
-                                 erlodf_xml:update_attribute(Tag, Current#xmlElement{pos=XMLPos + P}, PStr)}
-                        end,
-                        Pos)
-              end
-      end,
-      0,
-      Nodes).
+unpack(Current, Acc, _Tag, R) when length(Acc) == R ->
+   [Current | Acc];
+unpack(_Current, Acc, _Tag, R) when length(Acc) > R ->
+    Acc;
+unpack(Current, Acc, Tag, _R) ->
+    Repeated = list_to_integer(
+                 erlodf_xml:attribute(Tag, Current, "1")),
+    CurrentU = erlodf_xml:update_attribute(Tag, Current, "1"),
+    lists:duplicate(Repeated, CurrentU) ++ Acc.
+   
+maybe_add_node(Nodes, Length) when length(Nodes) >= Length ->
+    Nodes;
+maybe_add_node([Node | _] = Nodes, Length) ->
+    lists:duplicate(Length - length(Nodes), Node) ++ Nodes.
 
-fix_multiple([Node], PID) ->
-    fix_multiple(Node, PID);
-fix_multiple([Node], PID) ->
-    fix_multiple(Node, PID);
-fix_multiple(Nodes, PID) when is_list(Nodes) ->
-    lists:foreach(fun(Node) ->
-                          erlodf_document:update_body(PID, Node)
-                  end,
-                  Nodes),
-    lists:nth(2, Nodes);
-fix_multiple(#xmlElement{}=Node, _PID) ->
-    Node.
+fix_pos(Nodes0) ->
+    Nodes = lists:reverse(Nodes0),
+    [Node#xmlElement{pos=Pos} || {Pos, Node} <- lists:zip(lists:seq(1, length(Nodes)), Nodes)].
+
+filter_nodes(Nodes, Nodes0) ->
+    NodeSet = sets:from_list(Nodes0),
+    [N || N <- Nodes, not sets:is_element(N, NodeSet)].
+
+update_tree(Nodes, Nodes0, _PID) when length(Nodes0) == length(Nodes) ->
+    Nodes;
+update_tree(Nodes, Nodes0, PID) ->
+    %io:format("Nodes: ~p~n", [[Node#xmlElement.pos || Node <- Nodes]]),
+    %lists:map(fun(Node) ->
+                      %io:format("Pos: ~p~n", [Node#xmlElement.pos]),
+                      erlodf_document:update_body(PID, %Node)
+                  %end,
+                  filter_nodes(Nodes, Nodes0)).

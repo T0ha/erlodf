@@ -61,10 +61,11 @@ update_tree(#xmlElement{content=Content}=XML, [#xmlElement{pos=N}|_]=Nodes, []) 
 update_tree(#xmlElement{name=Tag}=XML, Nodes, [{Tag, _N}|Rest]) ->
     update_tree(XML, Nodes, Rest);
 update_tree(#xmlElement{content=Content}=XML, Nodes, [{_SubTag, N}|Rest]) ->
+    %io:format("Parent: ~p~n", [Rest]),
     Content1 = replace_nth(Content, N, Nodes, Rest),
     XML#xmlElement{content=Content1}.
 
-replace_nth([], 1, Nodes, []) ->
+replace_nth([], _, Nodes, []) ->
     Nodes;
 replace_nth([_], 1, Nodes, []) ->
     Nodes;

@@ -50,7 +50,7 @@ body(Pid) ->
     gen_server:call(Pid, body).
 
 update_body(Pid, Node) -> 
-    gen_server:cast(Pid, {update_body, Node}).
+    gen_server:call(Pid, {update_body, Node}).
 
 style(Pid) -> 
     gen_server:call(Pid, style).
@@ -111,6 +111,11 @@ init([Filename, Parent]) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+handle_call({update_body, Node}, _From, #odf_document{document_sup=DocumentSup,
+                                                      files_sup=FilesSup}=State) ->
+    PID = get_file("content.xml", DocumentSup, FilesSup),
+    Reply = erlodf_file_srv:update(PID, Node),
+    {reply, Reply, State};
 handle_call(save, _From, #odf_document{path=Filename, 
                                        files=OldFiles,
                                        files_sup=FilesSup}=State) ->

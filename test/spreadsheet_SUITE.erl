@@ -10,7 +10,7 @@
          cell_letter_test/1,
          get_cell_test/1,
          get_merged_cols_cell_test/1,
-         %get_merged_rows_cell_test/1,
+         get_packed_cols_cell_test/1,
          change_cell_test/1,
          set_cell_test/1
         ]).
@@ -28,7 +28,7 @@ all() ->
      cell_letter_test,
      get_cell_test,
      get_merged_cols_cell_test,
-     %get_merged_rows_cell_test,
+     get_packed_cols_cell_test,
      change_cell_test,
      set_cell_test
     ].
@@ -89,6 +89,12 @@ get_merged_cols_cell_test(C) ->
     {ok, Text} = erlodf_spreadsheet:get_cell(Document, 1, "D9"),
     ?assertEqual("3", Text).
 
+get_packed_cols_cell_test(C) ->
+    Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
+    {ok, Document} = erlodf:open(Path),
+    {ok, Text} = erlodf_spreadsheet:get_cell(Document, 1, "H9"),
+    ?assertEqual("H9", Text).
+
 change_cell_test(C) ->
     Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
     {ok, Document} = erlodf:open(Path),
@@ -98,7 +104,7 @@ change_cell_test(C) ->
     ?assertEqual("Market", Text0),
     Document = erlodf_spreadsheet:set_cell(Document, 1, {1, 2}, "Check Me", text),
     Binary = erlodf:save(Document),
-    ok=erlodf:close(Document),
+    %ok=erlodf:close(Document),
 
     {ok, Document1} = erlodf:open(Binary),
     {ok, Text1} = erlodf_spreadsheet:get_cell(Document1, 1, {1, 2}),
