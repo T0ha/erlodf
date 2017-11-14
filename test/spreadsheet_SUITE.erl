@@ -12,7 +12,8 @@
          get_merged_cols_cell_test/1,
          get_packed_cols_cell_test/1,
          change_cell_test/1,
-         set_cell_test/1
+         set_cell_test/1,
+         set_pdcked_cell_test/1
         ]).
 
 -include_lib("common_test/include/ct.hrl").
@@ -30,6 +31,7 @@ all() ->
      get_merged_cols_cell_test,
      get_packed_cols_cell_test,
      change_cell_test,
+     set_pdcked_cell_test,
      set_cell_test
     ].
 
@@ -118,5 +120,26 @@ set_cell_test(C) ->
     ?assertEqual('table:table-cell', Cell0#xmlElement.name),
     %?assertEqual("", Text0),
     Document = erlodf_spreadsheet:set_cell(Document, 1, "F8", "Check Me", text),
-    {ok, Text1} = erlodf_spreadsheet:get_cell(Document, 1, "F8"),
+    Binary = erlodf:save(Document),
+    %ok=erlodf:close(Document),
+
+    {ok, Document1} = erlodf:open(Binary),
+
+    {ok, Text1} = erlodf_spreadsheet:get_cell(Document1, 1, "F8"),
+    ?assertEqual("Check Me", Text1).
+
+set_pdcked_cell_test(C) ->
+    Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
+    {ok, Document} = erlodf:open(Path),
+    Cell0 = erlodf_spreadsheet:cell(Document, 1, "G9"),
+    empty = erlodf_xml:value(Cell0),
+    ?assertEqual('table:table-cell', Cell0#xmlElement.name),
+    %?assertEqual("", Text0),
+    Document = erlodf_spreadsheet:set_cell(Document, 1, "G9", "Check Me", text),
+    Binary = erlodf:save(Document),
+    %ok=erlodf:close(Document),
+
+    {ok, Document1} = erlodf:open(Binary),
+
+    {ok, Text1} = erlodf_spreadsheet:get_cell(Document1, 1, "G9"),
     ?assertEqual("Check Me", Text1).

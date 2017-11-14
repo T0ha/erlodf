@@ -123,7 +123,7 @@ handle_call(save, _From, #odf_document{path=Filename,
     FilePs = supervisor:which_children(FilesSup),
     NewFiles = lists:keysort(1, [erlodf_file_srv:save(Pid) || {_, Pid, worker, _} <- FilePs]),
     Files = lists:ukeymerge(1, NewFiles, lists:keysort(1, OldFiles)),
-    io:format("FIles: ~p", [[X || {X, _} <- Files]]),
+    %io:format("FIles: ~p", [[X || {X, _} <- Files]]),
     Zip = zip:create(Filename, Files, [memory]),
     {reply, Zip, State};
 

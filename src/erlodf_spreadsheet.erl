@@ -80,8 +80,10 @@ set_cell(PID, Sheet, Cell, Value, Type) ->
 
 get_nth_with_repeated(BaseNode, Tag, XPath, R, PID) -> 
     Nodes0 = lists:sublist(
-               xmerl_xpath:string(XPath, BaseNode),    
+               lists:keysort(#xmlElement.pos,
+                             xmerl_xpath:string(XPath, BaseNode)),    
                R),
+    %io:format("Nodes: ~p", [[Node#xmlElement.pos || Node <- Nodes0]]),
     Nodes1 = update_tree(
                fix_pos(
                  maybe_add_node(
@@ -117,8 +119,7 @@ update_tree(Nodes, Nodes0, _PID) when length(Nodes0) == length(Nodes) ->
     Nodes;
 update_tree(Nodes, Nodes0, PID) ->
     %io:format("Nodes: ~p~n", [[Node#xmlElement.pos || Node <- Nodes]]),
-    %lists:map(fun(Node) ->
-                      %io:format("Pos: ~p~n", [Node#xmlElement.pos]),
-                      erlodf_document:update_body(PID, %Node)
-                  %end,
-                  filter_nodes(Nodes, Nodes0)).
+    Nodes1 = filter_nodes(Nodes, Nodes0),
+    %io:format("Nodes: ~p~n", [[{Node#xmlElement.pos, Node#xmlElement.content} || Node <- Nodes1]]),
+    erlodf_document:update_body(PID, Nodes1),
+    Nodes.
