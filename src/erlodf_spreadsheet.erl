@@ -79,10 +79,8 @@ set_cell(PID, Sheet, Cell, Value, Type) ->
     PID.
 
 get_nth_with_repeated(BaseNode, Tag, XPath, R, PID) -> 
-    Nodes0 = lists:sublist(
-               lists:keysort(#xmlElement.pos,
-                             xmerl_xpath:string(XPath, BaseNode)),    
-               R),
+    Nodes0 = lists:keysort(#xmlElement.pos,
+                           xmerl_xpath:string(XPath, BaseNode)),    
     %io:format("Nodes: ~p", [[Node#xmlElement.pos || Node <- Nodes0]]),
     Nodes1 = update_tree(
                fix_pos(
@@ -92,10 +90,8 @@ get_nth_with_repeated(BaseNode, Tag, XPath, R, PID) ->
               Nodes0, PID),
     lists:nth(R, Nodes1).
 
-unpack(Current, Acc, _Tag, R) when length(Acc) == R ->
+unpack(Current, Acc, _Tag, R) when length(Acc) >= R ->
    [Current | Acc];
-unpack(_Current, Acc, _Tag, R) when length(Acc) > R ->
-    Acc;
 unpack(Current, Acc, Tag, _R) ->
     Repeated = list_to_integer(
                  erlodf_xml:attribute(Tag, Current, "1")),

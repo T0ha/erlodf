@@ -88,7 +88,7 @@ update_tree_test(C) ->
     {ok, Text0} = erlodf_xml:value(Node0),
     ?assertEqual("PT23M9S", Text0),
     Node1 = erlodf_xml:update_value(Node0, "Test Value"),
-    Tree = erlodf_xml:update_tree(XML, [Node1]),
+    Tree = erlodf_xml:update_tree(XML, Node1),
     ?assertEqual(XML#xmlElement.name, Tree#xmlElement.name),
     ?assertEqual(length(XML#xmlElement.content), length(Tree#xmlElement.content)),
     ?assertNotEqual(XML#xmlElement.content, Tree#xmlElement.content),

@@ -56,8 +56,10 @@ update_tree(XML, [#xmlElement{parents=Parent}|_]=Nodes) ->
 
 update_tree(#xmlElement{name=Tag}, [#xmlElement{name=Tag}|_]=Nodes, []) ->
     Nodes;
-update_tree(#xmlElement{content=Content}=XML, [#xmlElement{pos=N}|_]=Nodes, []) ->
-    XML#xmlElement{content=lists:flatten(replace_nth(Content, N, Nodes, []))};
+update_tree(#xmlElement{content=Content}=XML, Nodes, []) ->
+    %io:format("Content: ~p, Nodes: ~p~n", [Content, Nodes]),
+    Content1 = lists:ukeymerge(#xmlElement.pos, Nodes, Content),
+    XML#xmlElement{content=Content1};
 update_tree(#xmlElement{name=Tag}=XML, Nodes, [{Tag, _N}|Rest]) ->
     update_tree(XML, Nodes, Rest);
 update_tree(#xmlElement{content=Content}=XML, Nodes, [{_SubTag, N}|Rest]) ->
