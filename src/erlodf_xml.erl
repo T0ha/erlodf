@@ -48,7 +48,7 @@ get_with_type(Value, _) ->
 update_value(#xmlText{}=Node, Value) when is_binary(Value); is_list(Value) ->
     Node#xmlText{value=Value};
 update_value(#xmlText{}=Node, Value) ->
-    Value1 = lists:flatten(io_lib:format("~p", [Value])),
+    Value1 = string:replace(lists:flatten(io_lib:format("~p", [Value])), ".", ","),
     Node#xmlText{value=Value1};
 update_value(#xmlElement{content=Childs}=Node, Value) ->
     Node#xmlElement{content=update_value(Childs, Value)};
