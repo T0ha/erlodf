@@ -83,7 +83,7 @@ set_cell(PID, Sheet, Cell, Value, Type) ->
     Cell1 = erlodf_xml:update_value(Cell0, Value),
     Cell2 = erlodf_xml:update_attribute('office:value-type', Cell1, Type),
     Cell3 = erlodf_xml:update_attribute('calcext:value-type', Cell2, Type),
-    erlodf_document:update_body(PID, Cell3),
+    erlodf_document:update_body(PID, update_cell_value(Cell3, Value, Type)),
     PID.
 
 get_nth_with_repeated(BaseNode, Tag, XPath, R, PID) -> 
@@ -125,3 +125,12 @@ update_tree(Nodes, Nodes0, PID) ->
     Nodes1 = filter_nodes(Nodes, Nodes0),
     erlodf_document:update_body(PID, Nodes1),
     Nodes.
+
+update_cell_value(Cell, Value, float) ->
+    erlodf_xml:update_attribute('office:value', Cell, float_to_binary(Value));
+update_cell_value(Cell, Value, boolean) ->
+    erlodf_xml:update_attribute('office:boolean-value', Cell, Value);
+update_cell_value(Cell, Value, string) ->
+    erlodf_xml:update_attribute('office:string-value', Cell, Value);
+update_cell_value(Cell, _Value, _) ->
+    Cell.
