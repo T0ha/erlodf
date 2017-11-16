@@ -67,15 +67,23 @@ cell(PID, SheetName, {R, C}) ->
 
 get_cell(PID, Sheet, RC) ->
     Cell = cell(PID, Sheet, RC),
-    erlodf_xml:value(Cell).
+    Type = erlodf_xml:attribute('office:value-type', Cell, "text"),
+    {ok, Val} = erlodf_xml:value(Cell),
+    {ok, erlodf_xml:get_with_type(Val, Type)}.
 
+set_cell(PID, Sheet, Cell, Value) when is_float(Value); is_integer(Value) ->
+    set_cell(PID, Sheet, Cell, Value, float);
+set_cell(PID, Sheet, Cell, Value) when is_boolean(Value) ->
+    set_cell(PID, Sheet, Cell, Value, boolean);
 set_cell(PID, Sheet, Cell, Value) ->
-    set_cell(PID, Sheet, Cell, Value, text).
+    set_cell(PID, Sheet, Cell, Value, string).
 
 set_cell(PID, Sheet, Cell, Value, Type) ->
     Cell0 = cell(PID, Sheet, Cell),
-    Cell1 = erlodf_xml:update_value(Cell0, Value, Type),
-    erlodf_document:update_body(PID, Cell1),
+    Cell1 = erlodf_xml:update_value(Cell0, Value),
+    Cell2 = erlodf_xml:update_attribute('office:value-type', Cell1, Type),
+    Cell3 = erlodf_xml:update_attribute('calcext:value-type', Cell2, Type),
+    erlodf_document:update_body(PID, Cell3),
     PID.
 
 get_nth_with_repeated(BaseNode, Tag, XPath, R, PID) -> 
@@ -114,8 +122,6 @@ filter_nodes(Nodes, Nodes0) ->
 update_tree(Nodes, Nodes0, _PID) when length(Nodes0) == length(Nodes) ->
     Nodes;
 update_tree(Nodes, Nodes0, PID) ->
-    %io:format("Nodes: ~p~n", [[Node#xmlElement.pos || Node <- Nodes]]),
     Nodes1 = filter_nodes(Nodes, Nodes0),
-    %io:format("Nodes: ~p~n", [[{Node#xmlElement.pos, Node#xmlElement.content} || Node <- Nodes1]]),
     erlodf_document:update_body(PID, Nodes1),
     Nodes.

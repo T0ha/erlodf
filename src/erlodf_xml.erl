@@ -13,11 +13,11 @@
 
 -export([
          value/1,
+         get_with_type/2,
          attribute/2,
          attribute/3,
          update_attribute/3,
          update_value/2,
-         update_value/3,
          update_tree/2,
          update_tree/3
         ]).
@@ -33,20 +33,32 @@ value([]) ->
 value(_) ->
     {error, "Bad input"}.
 
-update_value(Node, Value) ->
-    update_value(Node, Value, text).
+get_with_type(Value, "float") ->
+    case re:run(Value, ",|\\.") of
+        {match, _} ->
+            list_to_float(Value);
+        nomatch ->
+            list_to_integer(Value)
+    end;
+get_with_type(Value, "boolean") ->
+    list_to_atom(Value);
+get_with_type(Value, _) ->
+    Value.
 
-update_value(#xmlText{}=Node, Value, Type) ->
-    Node#xmlText{value=Value, type=Type};
-update_value(#xmlElement{content=Childs}=Node, Value, Type) ->
-    Node#xmlElement{content=update_value(Childs, Value, Type)};
-update_value([Child], Value, Type) ->
-    [update_value(Child, Value, Type)];
-update_value([], Value, Type) ->
+update_value(#xmlText{}=Node, Value) when is_binary(Value); is_list(Value) ->
+    Node#xmlText{value=Value};
+update_value(#xmlText{}=Node, Value) ->
+    Value1 = lists:flatten(io_lib:format("~p", [Value])),
+    Node#xmlText{value=Value1};
+update_value(#xmlElement{content=Childs}=Node, Value) ->
+    Node#xmlElement{content=update_value(Childs, Value)};
+update_value([Child], Value) ->
+    [update_value(Child, Value)];
+update_value([], Value) ->
     Node = #xmlElement{name='text:p',
                        content=[#xmlText{}]},
-    update_value([Node], Value, Type);
-update_value(_Nodes, _Value, _Type) ->
+    update_value([Node], Value);
+update_value(_Nodes, _Value) ->
     {error, "Bad input"}.
 
 update_tree(XML, #xmlElement{}=Node) ->

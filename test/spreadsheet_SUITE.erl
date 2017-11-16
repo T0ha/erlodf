@@ -9,10 +9,12 @@
          cell_tuple_test/1,
          cell_letter_test/1,
          get_cell_test/1,
+         get_cell_with_type_test/1,
          get_merged_cols_cell_test/1,
          get_packed_cols_cell_test/1,
          change_cell_test/1,
          set_cell_test/1,
+         set_cell_with_type_test/1,
          set_pdcked_cell_test/1
         ]).
 
@@ -28,10 +30,12 @@ all() ->
      cell_tuple_test,
      cell_letter_test,
      get_cell_test,
+     get_cell_with_type_test,
      get_merged_cols_cell_test,
      get_packed_cols_cell_test,
      change_cell_test,
      set_pdcked_cell_test,
+     set_cell_with_type_test,
      set_cell_test
     ].
 
@@ -85,11 +89,17 @@ get_cell_test(C) ->
     {ok, Text} = erlodf_spreadsheet:get_cell(Document, 1, "B2"),
     ?assertEqual("BTC/USDT", Text).
 
+get_cell_with_type_test(C) ->
+    Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
+    {ok, Document} = erlodf:open(Path),
+    {ok, Text} = erlodf_spreadsheet:get_cell(Document, 1, "F2"),
+    ?assertEqual(0.00095774, Text).
+
 get_merged_cols_cell_test(C) ->
     Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
     {ok, Document} = erlodf:open(Path),
     {ok, Text} = erlodf_spreadsheet:get_cell(Document, 1, "D9"),
-    ?assertEqual("3", Text).
+    ?assertEqual(3, Text).
 
 get_packed_cols_cell_test(C) ->
     Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
@@ -127,6 +137,20 @@ set_cell_test(C) ->
 
     {ok, Text1} = erlodf_spreadsheet:get_cell(Document1, 1, "F8"),
     ?assertEqual("Check Me", Text1).
+
+set_cell_with_type_test(C) ->
+    Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
+    {ok, Document} = erlodf:open(Path),
+    Cell0 = erlodf_spreadsheet:cell(Document, 1, "F8"),
+    empty = erlodf_xml:value(Cell0),
+    ?assertEqual('table:table-cell', Cell0#xmlElement.name),
+    Document = erlodf_spreadsheet:set_cell(Document, 1, "F8", 1.8, float),
+    Binary = erlodf:save(Document),
+
+    {ok, Document1} = erlodf:open(Binary),
+
+    {ok, Text1} = erlodf_spreadsheet:get_cell(Document1, 1, "F8"),
+    ?assertEqual(1.8, Text1).
 
 set_pdcked_cell_test(C) ->
     Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
