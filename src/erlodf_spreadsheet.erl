@@ -127,7 +127,8 @@ update_tree(Nodes, Nodes0, PID) ->
     Nodes.
 
 update_cell_value(Cell, Value, float) ->
-    erlodf_xml:update_attribute('office:value', Cell, float_to_binary(Value));
+    Value1 = lists:flatten(io_lib:format("~p", [Value])),
+    erlodf_xml:update_attribute('office:value', Cell, Value1);
 update_cell_value(Cell, Value, boolean) ->
     erlodf_xml:update_attribute('office:boolean-value', Cell, Value);
 update_cell_value(Cell, Value, string) ->
