@@ -49,6 +49,8 @@ start_link(Filename, Sup) ->
 body(Pid) -> 
     gen_server:call(Pid, body).
 
+update_body(_Pid, []) -> 
+    [];
 update_body(Pid, Node) -> 
     gen_server:call(Pid, {update_body, Node}).
 

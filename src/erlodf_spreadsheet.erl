@@ -62,6 +62,10 @@ cell(PID, Sheet, [RL | CN]) ->
     cell(PID, Sheet, RC);
 cell(PID, SheetName, {R, C}) -> 
     Sheet = sheet(PID, SheetName),
+    Formulas0 = xmerl_xpath:string("//table:table-cell[@table:formula]", Sheet),
+    Formulas1 = [erlodf_xml:update_value(Cell, "") || Cell <- Formulas0],
+    Formulas2 = [erlodf_xml:update_attribute('office:value', Cell, "") || Cell <- Formulas1],
+    [erlodf_document:update_body(PID, Formula) || Formula <- Formulas2],
     Row = get_nth_with_repeated(Sheet, 'table:number-rows-repeated', ".//table:table-row", R, PID),
       get_nth_with_repeated(Row, 'table:number-columns-repeated', ".//table:table-cell | //table:covered-table-cell", C, PID).
 
