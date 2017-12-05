@@ -167,13 +167,20 @@ handle_save(#odf_file{name=Filename, modified=false, data=Data}) ->
     {Filename, Data};
 handle_save(#odf_file{name=Filename, data=Data, modified=true, xml=XML}) ->
     Binary = unicode:characters_to_binary(xmerl:export_simple([XML], xmerl_xml)),
+    save_debug(XML, Filename, Binary, Data),
+    {Filename, Binary}.
+
+-ifdef(DEBUG).
+save_debug(XML, Filename, Binary, Data) ->
     {ok, F} = file:open("content.erl", [write]),
     io:format(F, "~p", [XML]),
     file:close(F),
     file:write_file("out/" ++ Filename, Binary),
-    file:write_file("in/" ++ Filename, Data),
-    {Filename, Binary}.
-
+    file:write_file("in/" ++ Filename, Data).
+-else.
+save_debug(_XML, _Filename, _Binary, _Data) ->
+    ok.
+-endif.
 
 
 

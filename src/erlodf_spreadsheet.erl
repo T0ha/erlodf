@@ -12,8 +12,12 @@
 -export([
          sheets/1,
          sheet_names/1,
+
          sheet/2,
          cell/3,
+         row/3,
+
+         copy_row/4,
          get_cell/3,
          set_cell/4,
          set_cell/5
@@ -51,6 +55,18 @@ sheet(PID, Name) when is_list(Name) ->
     [Sheet] = xmerl_xpath:string(lists:flatten(io_lib:format("//table:table[@table:name='~s']", [Name])), Body),
     Sheet.
 
+-spec row(pid(), Sheet, R) -> #xmlElement{} when 
+      Sheet :: string(),
+      R :: non_neg_integer().
+row(PID, SheetName, R) -> 
+    Sheet = sheet(PID, SheetName),
+    Formulas0 = xmerl_xpath:string("//table:table-cell[@table:formula]", Sheet),
+    Formulas1 = [erlodf_xml:update_value(Cell, "") || Cell <- Formulas0],
+    Formulas2 = [erlodf_xml:update_attribute('office:value', Cell, "") || Cell <- Formulas1],
+    [erlodf_document:update_body(PID, Formula) || Formula <- Formulas2],
+    get_nth_with_repeated(Sheet, 'table:number-rows-repeated', ".//table:table-row", R, PID).
+
+
 -spec cell(pid(), Sheet, RC) -> #xmlElement{} when 
       Sheet :: string(),
       RC :: {R, C} | string(),
@@ -61,13 +77,19 @@ cell(PID, Sheet, [RL | CN]) ->
     RC = {list_to_integer(CN), RU - $A + 1},
     cell(PID, Sheet, RC);
 cell(PID, SheetName, {R, C}) -> 
-    Sheet = sheet(PID, SheetName),
-    Formulas0 = xmerl_xpath:string("//table:table-cell[@table:formula]", Sheet),
-    Formulas1 = [erlodf_xml:update_value(Cell, "") || Cell <- Formulas0],
-    Formulas2 = [erlodf_xml:update_attribute('office:value', Cell, "") || Cell <- Formulas1],
-    [erlodf_document:update_body(PID, Formula) || Formula <- Formulas2],
-    Row = get_nth_with_repeated(Sheet, 'table:number-rows-repeated', ".//table:table-row", R, PID),
-      get_nth_with_repeated(Row, 'table:number-columns-repeated', ".//table:table-cell | //table:covered-table-cell", C, PID).
+    Row = row(PID, SheetName, R),
+    get_nth_with_repeated(Row, 'table:number-columns-repeated', ".//table:table-cell | //table:covered-table-cell", C, PID).
+
+-spec copy_row(PID, SheetName, RowNumber, RowsToAdd) ->  PID when
+      PID :: pid(),
+      SheetName :: string() | non_neg_integer(),
+      RowNumber :: non_neg_integer(),
+      RowsToAdd :: non_neg_integer().
+copy_row(PID, SheetName, RowNumber, RowsToAdd) -> 
+    Row0 = row(PID, SheetName, RowNumber),
+    Rows = lists:duplicate(RowsToAdd + 1, Row0),
+    erlodf_document:update_body(PID, Rows),
+    PID.
 
 get_cell(PID, Sheet, RC) ->
     Cell = cell(PID, Sheet, RC),
@@ -93,7 +115,6 @@ set_cell(PID, Sheet, Cell, Value, Type) ->
 get_nth_with_repeated(BaseNode, Tag, XPath, R, PID) -> 
     Nodes0 = lists:keysort(#xmlElement.pos,
                            xmerl_xpath:string(XPath, BaseNode)),    
-    %io:format("Nodes: ~p", [[Node#xmlElement.pos || Node <- Nodes0]]),
     Nodes1 = update_tree(
                fix_pos(
                  maybe_add_node(
@@ -116,8 +137,9 @@ maybe_add_node([Node | _] = Nodes, Length) ->
     lists:duplicate(Length - length(Nodes), Node) ++ Nodes.
 
 fix_pos(Nodes0) ->
-    Nodes = lists:reverse(Nodes0),
-    [Node#xmlElement{pos=Pos} || {Pos, Node} <- lists:zip(lists:seq(1, length(Nodes)), Nodes)].
+    [Node0|_] = Nodes = lists:reverse(Nodes0),
+    Pos0 = Node0#xmlElement.pos,
+    [Node#xmlElement{pos=Pos} || {Pos, Node} <- lists:zip(lists:seq(Pos0, Pos0 - 1 + length(Nodes)), Nodes)].
 
 filter_nodes(Nodes, Nodes0) ->
     NodeSet = sets:from_list(Nodes0),

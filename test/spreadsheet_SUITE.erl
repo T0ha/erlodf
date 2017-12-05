@@ -15,7 +15,8 @@
          change_cell_test/1,
          set_cell_test/1,
          set_cell_with_type_test/1,
-         set_pdcked_cell_test/1
+         set_pdcked_cell_test/1,
+         copy_row_test/1
         ]).
 
 -include_lib("common_test/include/ct.hrl").
@@ -36,7 +37,8 @@ all() ->
      change_cell_test,
      set_pdcked_cell_test,
      set_cell_with_type_test,
-     set_cell_test
+     set_cell_test,
+     copy_row_test
     ].
 
 init_per_testcase(_, C) ->
@@ -50,8 +52,8 @@ end_per_testcase(_, C) ->
 sheets_test(C) ->
     Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
     {ok, Document} = erlodf:open(Path),
-    [Sheet] = erlodf_spreadsheet:sheets(Document).
-    %?assert(is_record(xmlElement, Sheet)).
+    Sheets = erlodf_spreadsheet:sheets(Document),
+    ?assertEqual(2, length(Sheets)).
 
 sheet_by_name_test(C) ->
     Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
@@ -167,3 +169,27 @@ set_pdcked_cell_test(C) ->
 
     {ok, Text1} = erlodf_spreadsheet:get_cell(Document1, 1, "G9"),
     ?assertEqual("Check Me", Text1).
+
+copy_row_test(C) ->
+    Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
+    {ok, Document} = erlodf:open(Path),
+    Document = erlodf_spreadsheet:copy_row(Document, 2, 3, 3),
+    Binary = erlodf:save(Document),
+    {ok, Document1} = erlodf:open(Binary),
+    
+    % Test if rows before and after are correct (not overwrittten)
+    {ok, A7} = erlodf_spreadsheet:get_cell(Document1, 2, "A7"),
+    ?assertEqual("4A", A7),
+
+    {ok, A2} = erlodf_spreadsheet:get_cell(Document1, 2, "A2"),
+    ?assertEqual("2A", A2),
+
+    % Check if all data copied correctly
+    {ok, A3} = erlodf_spreadsheet:get_cell(Document1, 2, "A3"),
+    ?assertEqual("3A", A3),
+
+    {ok, B4} = erlodf_spreadsheet:get_cell(Document1, 2, "B4"),
+    ?assertEqual("3B", B4),
+
+    {ok, C5} = erlodf_spreadsheet:get_cell(Document1, 2, "C5"),
+    ?assertEqual("3C",C5).
