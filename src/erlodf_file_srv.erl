@@ -50,7 +50,7 @@ update(PID, Node) ->
     gen_server:call(PID, {update, Node}).
 
 save(PID) -> 
-    gen_server:call(PID, save).
+    gen_server:call(PID, save, infinity).
 
 %%%===================================================================
 %%% gen_server callbacks

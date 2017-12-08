@@ -58,7 +58,7 @@ style(Pid) ->
     gen_server:call(Pid, style).
 
 save(Pid) -> 
-    {ok, {_, Binary}} = gen_server:call(Pid, save),
+    {ok, {_, Binary}} = gen_server:call(Pid, save, infinity),
     Binary.
 
 close(Pid) -> 
