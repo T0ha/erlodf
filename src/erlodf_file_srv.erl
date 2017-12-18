@@ -19,7 +19,8 @@
         ]).
 
 %% gen_server callbacks
--export([init/1,
+-export([
+         init/1,
          handle_call/3,
          handle_cast/2,
          handle_info/2,
@@ -161,7 +162,9 @@ handle_tag(TagName, #odf_file{xml=XML}) ->
 
 handle_update(Node, #odf_file{xml=XML}=State) ->
     XML1 = erlodf_xml:update_tree(XML, Node),
-    State#odf_file{xml=XML1, modified=true}.
+    Data = unicode:characters_to_binary(xmerl:export_simple([XML1], xmerl_xml)),
+    {XML2, _R} = xmerl_scan:string(binary_to_list(Data)),
+    State#odf_file{xml=XML2, modified=true}.
 
 handle_save(#odf_file{name=Filename, modified=false, data=Data}) ->
     {Filename, Data};
@@ -170,7 +173,7 @@ handle_save(#odf_file{name=Filename, data=Data, modified=true, xml=XML}) ->
     save_debug(XML, Filename, Binary, Data),
     {Filename, Binary}.
 
--ifdef(DEBUG).
+-ifndef(DEBUG).
 save_debug(XML, Filename, Binary, Data) ->
     {ok, F} = file:open("content.erl", [write]),
     io:format(F, "~p", [XML]),

@@ -33,16 +33,18 @@ value([]) ->
 value(_) ->
     {error, "Bad input"}.
 
-get_with_type(Value, "float") ->
+get_with_type(empty, _) ->
+    "";
+get_with_type({ok, Value}, "float") ->
     case re:run(Value, ",|\\.") of
         {match, _} ->
             list_to_float(Value);
         nomatch ->
             list_to_integer(Value)
     end;
-get_with_type(Value, "boolean") ->
+get_with_type({ok, Value}, "boolean") ->
     list_to_atom(Value);
-get_with_type(Value, _) ->
+get_with_type({ok, Value}, _) ->
     Value.
 
 update_value(#xmlText{}=Node, Value) when is_binary(Value); is_list(Value) ->

@@ -64,7 +64,13 @@ row(PID, SheetName, R) ->
     Formulas1 = [erlodf_xml:update_value(Cell, "") || Cell <- Formulas0],
     Formulas2 = [erlodf_xml:update_attribute('office:value', Cell, "") || Cell <- Formulas1],
     [erlodf_document:update_body(PID, Formula) || Formula <- Formulas2],
-    get_nth_with_repeated(Sheet, 'table:number-rows-repeated', ".//table:table-row", R, PID).
+    Nodes = get_nodes(Sheet, ".//table:table-row"),
+    case unpack_repeated(Nodes, 'table:number-rows-repeated', R, PID) of
+        recurse ->
+            row(PID, SheetName, R);
+        Nodes1 ->
+            lists:nth(R, Nodes1)
+    end.
 
 
 -spec cell(pid(), Sheet, RC) -> #xmlElement{} when 
@@ -76,9 +82,15 @@ cell(PID, Sheet, [RL | CN]) ->
     [RU] = string:uppercase([RL]),
     RC = {list_to_integer(CN), RU - $A + 1},
     cell(PID, Sheet, RC);
-cell(PID, SheetName, {R, C}) -> 
+cell(PID, SheetName, {R, C}=RC) -> 
     Row = row(PID, SheetName, R),
-    get_nth_with_repeated(Row, 'table:number-columns-repeated', ".//table:table-cell | //table:covered-table-cell", C, PID).
+    Nodes = get_nodes(Row, ".//table:table-cell | //table:covered-table-cell"),
+    case unpack_repeated(Nodes, 'table:number-columns-repeated', R, PID) of
+        recurse ->
+            cell(PID, SheetName, RC);
+        Nodes1 ->
+            lists:nth(C, Nodes1)
+    end.
 
 -spec copy_row(PID, SheetName, RowNumber, RowsToAdd) ->  PID when
       PID :: pid(),
@@ -87,14 +99,14 @@ cell(PID, SheetName, {R, C}) ->
       RowsToAdd :: non_neg_integer().
 copy_row(PID, SheetName, RowNumber, RowsToAdd) -> 
     Row0 = row(PID, SheetName, RowNumber),
-    Rows = lists:duplicate(RowsToAdd + 1, Row0),
-    erlodf_document:update_body(PID, Rows),
+    Row1 = erlodf_xml:update_attribute('table:number-rows-repeated', Row0, integer_to_list(RowsToAdd + 1)),
+    erlodf_document:update_body(PID, Row1),
     PID.
 
 get_cell(PID, Sheet, RC) ->
     Cell = cell(PID, Sheet, RC),
     Type = erlodf_xml:attribute('office:value-type', Cell, "text"),
-    {ok, Val} = erlodf_xml:value(Cell),
+    Val = erlodf_xml:value(Cell),
     {ok, erlodf_xml:get_with_type(Val, Type)}.
 
 set_cell(PID, Sheet, Cell, Value) when is_float(Value); is_integer(Value) ->
@@ -112,16 +124,17 @@ set_cell(PID, Sheet, Cell, Value, Type) ->
     erlodf_document:update_body(PID, update_cell_value(Cell3, Value, Type)),
     PID.
 
-get_nth_with_repeated(BaseNode, Tag, XPath, R, PID) -> 
-    Nodes0 = lists:keysort(#xmlElement.pos,
-                           xmerl_xpath:string(XPath, BaseNode)),    
-    Nodes1 = update_tree(
-               fix_pos(
-                 maybe_add_node(
-                   lists:foldl(fun(C, A) -> unpack(C, A, Tag, R) end, [], Nodes0),
-                  R)),
-              Nodes0, PID),
-    lists:nth(R, Nodes1).
+get_nodes(BaseNode, XPath) -> 
+     lists:keysort(#xmlElement.pos,
+                   xmerl_xpath:string(XPath, BaseNode)).   
+    
+unpack_repeated(Nodes, Tag, R, PID) -> 
+    update_tree(
+      fix_pos(
+        maybe_add_node(
+          lists:foldl(fun(C, A) -> unpack(C, A, Tag, R) end, [], Nodes),
+          R)),
+      Nodes, PID).
 
 unpack(Current, Acc, _Tag, R) when length(Acc) >= R ->
    [Current | Acc];
@@ -149,8 +162,9 @@ update_tree(Nodes, Nodes0, _PID) when length(Nodes0) == length(Nodes) ->
     Nodes;
 update_tree(Nodes, Nodes0, PID) ->
     Nodes1 = filter_nodes(Nodes, Nodes0),
+    io:format("Nodes: ~p Nodes0: ~p Nodes1: ~p~n", [length(Nodes), length(Nodes0), length(Nodes1)]),
     erlodf_document:update_body(PID, Nodes1),
-    Nodes.
+    recurse.
 
 update_cell_value(Cell, Value, float) ->
     Value1 = lists:flatten(io_lib:format("~p", [Value])),

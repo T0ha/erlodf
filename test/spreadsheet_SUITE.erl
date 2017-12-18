@@ -16,6 +16,7 @@
          set_cell_test/1,
          set_cell_with_type_test/1,
          set_pdcked_cell_test/1,
+         copy_empty_row_test/1,
          copy_row_test/1
         ]).
 
@@ -38,6 +39,7 @@ all() ->
      set_pdcked_cell_test,
      set_cell_with_type_test,
      set_cell_test,
+     copy_empty_row_test,
      copy_row_test
     ].
 
@@ -53,7 +55,7 @@ sheets_test(C) ->
     Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
     {ok, Document} = erlodf:open(Path),
     Sheets = erlodf_spreadsheet:sheets(Document),
-    ?assertEqual(2, length(Sheets)).
+    ?assertEqual(3, length(Sheets)).
 
 sheet_by_name_test(C) ->
     Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
@@ -178,7 +180,7 @@ copy_row_test(C) ->
     {ok, Document1} = erlodf:open(Binary),
     
     % Test if rows before and after are correct (not overwrittten)
-    {ok, A7} = erlodf_spreadsheet:get_cell(Document1, 2, "A7"),
+    {ok, A7} = erlodf_spreadsheet:get_cell(Document1, 2, "A8"),
     ?assertEqual("4A", A7),
 
     {ok, A2} = erlodf_spreadsheet:get_cell(Document1, 2, "A2"),
@@ -192,4 +194,51 @@ copy_row_test(C) ->
     ?assertEqual("3B", B4),
 
     {ok, C5} = erlodf_spreadsheet:get_cell(Document1, 2, "C5"),
-    ?assertEqual("3C",C5).
+    ?assertEqual("3C",C5),
+    
+    % Change copied cells
+    erlodf_spreadsheet:set_cell(Document1, 2, "B4", "B4"),
+    erlodf_spreadsheet:set_cell(Document1, 2, "B5", "B5"),
+
+    {ok, N_B4} = erlodf_spreadsheet:get_cell(Document1, 2, "B4"),
+    ?assertEqual("B4", N_B4),
+
+    {ok, N_B5} = erlodf_spreadsheet:get_cell(Document1, 2, "B5"),
+    ?assertEqual("B5", N_B5).
+
+copy_empty_row_test(C) ->
+    Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
+    {ok, Document} = erlodf:open(Path),
+    Document = erlodf_spreadsheet:copy_row(Document, 3, 2, 3),
+    Binary = erlodf:save(Document),
+    {ok, Document1} = erlodf:open(Binary),
+    
+    % Test if rows before and after are correct (not overwrittten)
+    {ok, A6} = erlodf_spreadsheet:get_cell(Document1, 3, "A6"),
+    ?assertEqual("A3", A6),
+
+    {ok, A1} = erlodf_spreadsheet:get_cell(Document1, 3, "A1"),
+    ?assertEqual("A1", A1),
+
+    % Check if all data copied correctly
+    A2 = erlodf_spreadsheet:get_cell(Document1, 3, "A2"),
+    ?assertEqual(empty, A2),
+
+    B3 = erlodf_spreadsheet:get_cell(Document1, 3, "B3"),
+    ?assertEqual(empty, B3),
+
+    B4 = erlodf_spreadsheet:get_cell(Document1, 3, "B4"),
+    ?assertEqual(empty, B4),
+
+    C5 = erlodf_spreadsheet:get_cell(Document1, 3, "C5"),
+    ?assertEqual(empty,C5),
+    
+    % Change copied cells
+    erlodf_spreadsheet:set_cell(Document1, 3, "B4", "B4N"),
+    erlodf_spreadsheet:set_cell(Document1, 3, "B5", "B5N"),
+
+    {ok, N_B4} = erlodf_spreadsheet:get_cell(Document1, 3, "B4"),
+    ?assertEqual("B4N", N_B4),
+
+    {ok, N_B5} = erlodf_spreadsheet:get_cell(Document1, 3, "B5"),
+    ?assertEqual("B5N", N_B5).
