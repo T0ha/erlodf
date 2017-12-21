@@ -69,6 +69,7 @@ row(PID, SheetName, R) ->
         recurse ->
             row(PID, SheetName, R);
         Nodes1 ->
+            io:format("R: ~p Length: ~p~n", [R, [N#xmlElement.name || N <- Nodes1]]),
             lists:nth(R, Nodes1)
     end.
 
@@ -101,6 +102,7 @@ copy_row(PID, SheetName, RowNumber, RowsToAdd) ->
     Row0 = row(PID, SheetName, RowNumber),
     Row1 = erlodf_xml:update_attribute('table:number-rows-repeated', Row0, integer_to_list(RowsToAdd + 1)),
     erlodf_document:update_body(PID, Row1),
+    erlodf_document:flash_body(PID),
     PID.
 
 get_cell(PID, Sheet, RC) ->
@@ -164,6 +166,7 @@ update_tree(Nodes, Nodes0, PID) ->
     Nodes1 = filter_nodes(Nodes, Nodes0),
     io:format("Nodes: ~p Nodes0: ~p Nodes1: ~p~n", [length(Nodes), length(Nodes0), length(Nodes1)]),
     erlodf_document:update_body(PID, Nodes1),
+    erlodf_document:flash_body(PID),
     recurse.
 
 update_cell_value(Cell, Value, float) ->

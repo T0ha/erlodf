@@ -15,6 +15,7 @@
          start_link/1,
          tag/2,
          update/2,
+         flash/1,
          save/1
         ]).
 
@@ -49,6 +50,9 @@ tag(PID, Tag) ->
 
 update(PID, Node) ->
     gen_server:call(PID, {update, Node}).
+
+flash(PID) ->
+    gen_server:call(PID, flash).
 
 save(PID) -> 
     gen_server:call(PID, save, infinity).
@@ -92,6 +96,8 @@ init([{Filename, Data}]) ->
 %%--------------------------------------------------------------------
 handle_call({update, Node}, _From, State) ->
     {reply, Node, handle_update(Node, State)};
+handle_call(flash, _From, State) ->
+    {reply, ok, handle_flash(State)};
 handle_call({tag, TagName}, _From, State) ->
     {reply, handle_tag(TagName, State), State};
 handle_call(save, _From, State) ->
@@ -162,9 +168,12 @@ handle_tag(TagName, #odf_file{xml=XML}) ->
 
 handle_update(Node, #odf_file{xml=XML}=State) ->
     XML1 = erlodf_xml:update_tree(XML, Node),
-    Data = unicode:characters_to_binary(xmerl:export_simple([XML1], xmerl_xml)),
+    State#odf_file{xml=XML1, modified=true}.
+
+handle_flash(#odf_file{xml=XML}=State) ->
+    Data = unicode:characters_to_binary(xmerl:export_simple([XML], xmerl_xml)),
     {XML2, _R} = xmerl_scan:string(binary_to_list(Data)),
-    State#odf_file{xml=XML2, modified=true}.
+    State#odf_file{xml=XML2, modified=false, data=Data}.
 
 handle_save(#odf_file{name=Filename, modified=false, data=Data}) ->
     {Filename, Data};

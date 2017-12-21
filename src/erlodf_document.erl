@@ -17,6 +17,7 @@
          update_body/2,
          style/1,
          save/1,
+         flash_body/1,
          close/1
         ]).
 
@@ -53,6 +54,9 @@ update_body(_Pid, []) ->
     [];
 update_body(Pid, Node) -> 
     gen_server:call(Pid, {update_body, Node}).
+
+flash_body(Pid) -> 
+    gen_server:call(Pid, {flash, "content.xml"}).
 
 style(Pid) -> 
     gen_server:call(Pid, style).
@@ -117,6 +121,14 @@ handle_call({update_body, Node}, _From, #odf_document{document_sup=DocumentSup,
                                                       files_sup=FilesSup}=State) ->
     PID = get_file("content.xml", DocumentSup, FilesSup),
     Reply = erlodf_file_srv:update(PID, Node),
+    {reply, Reply, State};
+handle_call({flash, "content.xml"=File},
+            _From,
+            #odf_document{document_sup=DocumentSup,
+                          files_sup=FilesSup}=State) ->
+
+    PID = get_file(File, DocumentSup, FilesSup),
+    Reply = erlodf_file_srv:flash(PID),
     {reply, Reply, State};
 handle_call(save, _From, #odf_document{path=Filename, 
                                        files=OldFiles,
