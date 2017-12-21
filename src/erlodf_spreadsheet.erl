@@ -69,7 +69,7 @@ row(PID, SheetName, R) ->
         recurse ->
             row(PID, SheetName, R);
         Nodes1 ->
-            io:format("R: ~p Length: ~p~n", [R, [N#xmlElement.name || N <- Nodes1]]),
+            %io:format("R: ~p Length: ~p~n", [R, [N#xmlElement.name || N <- Nodes1]]),
             lists:nth(R, Nodes1)
     end.
 
@@ -164,7 +164,7 @@ update_tree(Nodes, Nodes0, _PID) when length(Nodes0) == length(Nodes) ->
     Nodes;
 update_tree(Nodes, Nodes0, PID) ->
     Nodes1 = filter_nodes(Nodes, Nodes0),
-    io:format("Nodes: ~p Nodes0: ~p Nodes1: ~p~n", [length(Nodes), length(Nodes0), length(Nodes1)]),
+    %io:format("Nodes: ~p Nodes0: ~p Nodes1: ~p~n", [length(Nodes), length(Nodes0), length(Nodes1)]),
     erlodf_document:update_body(PID, Nodes1),
     erlodf_document:flash_body(PID),
     recurse.
