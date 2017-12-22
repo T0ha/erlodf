@@ -65,6 +65,7 @@ row(PID, SheetName, R) ->
     Formulas2 = [erlodf_xml:update_attribute('office:value', Cell, "") || Cell <- Formulas1],
     [erlodf_document:update_body(PID, Formula) || Formula <- Formulas2],
     Nodes = get_nodes(Sheet, ".//table:table-row"),
+    io:format("Row: ~p, Len: ~p~n", [R, length(Nodes)]),
     case unpack_repeated(Nodes, 'table:number-rows-repeated', R, PID) of
         recurse ->
             row(PID, SheetName, R);
@@ -102,7 +103,7 @@ copy_row(PID, SheetName, RowNumber, RowsToAdd) ->
     Row0 = row(PID, SheetName, RowNumber),
     Row1 = erlodf_xml:update_attribute('table:number-rows-repeated', Row0, integer_to_list(RowsToAdd + 1)),
     erlodf_document:update_body(PID, Row1),
-    erlodf_document:flash_body(PID),
+    %erlodf_document:flash_body(PID),
     PID.
 
 get_cell(PID, Sheet, RC) ->
@@ -151,10 +152,30 @@ maybe_add_node(Nodes, Length) when length(Nodes) >= Length ->
 maybe_add_node([Node | _] = Nodes, Length) ->
     lists:duplicate(Length - length(Nodes), Node) ++ Nodes.
 
-fix_pos(Nodes0) ->
+fix_pos(#xmlElement{pos=Pos0, name=Tag0, content=Nodes0}=Node0) ->
+    Node0#xmlElement{content=fix_pos(Nodes0, Tag0, Pos0)};
+fix_pos(Nodes0) when is_list(Nodes0) ->
     [Node0|_] = Nodes = lists:reverse(Nodes0),
     Pos0 = Node0#xmlElement.pos,
-    [Node#xmlElement{pos=Pos} || {Pos, Node} <- lists:zip(lists:seq(Pos0, Pos0 - 1 + length(Nodes)), Nodes)].
+    Poses = lists:seq(Pos0, Pos0 - 1 + length(Nodes)),
+    [fix_pos(Node#xmlElement{pos=Pos}) 
+     || {Pos, Node} <- lists:zip(Poses, Nodes)].
+
+fix_pos(Nodes0, Tag0, Pos0) when is_list(Nodes0) ->
+    [fix_pos(Node, Tag0, Pos0) || Node <- Nodes0];
+fix_pos(#xmlElement{parents=Parents0,
+                    attributes=Attributes0,
+                    content=Nodes0}=Node0,
+        Tag0,
+        Pos0) ->
+    Node0#xmlElement{parents=lists:keyreplace(Tag0, 1, Parents0, {Tag0, Pos0}),
+                     attributes=fix_pos(Attributes0, Tag0, Pos0),
+                     content=fix_pos(Nodes0, Tag0, Pos0)};
+fix_pos(#xmlText{parents=Parents0}=Node0, Tag0, Pos0) ->
+    Node0#xmlText{parents=lists:keyreplace(Tag0, 1, Parents0, {Tag0, Pos0})};
+fix_pos(#xmlAttribute{parents=Parents0}=Node0, Tag0, Pos0) ->
+    Node0#xmlAttribute{parents=lists:keyreplace(Tag0, 1, Parents0, {Tag0, Pos0})}.
+
 
 filter_nodes(Nodes, Nodes0) ->
     NodeSet = sets:from_list(Nodes0),
@@ -164,9 +185,9 @@ update_tree(Nodes, Nodes0, _PID) when length(Nodes0) == length(Nodes) ->
     Nodes;
 update_tree(Nodes, Nodes0, PID) ->
     Nodes1 = filter_nodes(Nodes, Nodes0),
-    %io:format("Nodes: ~p Nodes0: ~p Nodes1: ~p~n", [length(Nodes), length(Nodes0), length(Nodes1)]),
+    io:format("Nodes: ~p Nodes0: ~p Nodes1: ~p~n", [length(Nodes), length(Nodes0), length(Nodes1)]),
     erlodf_document:update_body(PID, Nodes1),
-    erlodf_document:flash_body(PID),
+    %erlodf_document:flash_body(PID),
     recurse.
 
 update_cell_value(Cell, Value, float) ->
