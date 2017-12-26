@@ -182,7 +182,7 @@ handle_save(#odf_file{name=Filename, data=Data, modified=true, xml=XML}) ->
     save_debug(XML, Filename, Binary, Data),
     {Filename, Binary}.
 
--ifndef(DEBUG).
+-ifdef(DEBUG).
 save_debug(XML, Filename, Binary, Data) ->
     {ok, F} = file:open("content.erl", [write]),
     io:format(F, "~p", [XML]),
