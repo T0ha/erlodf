@@ -18,6 +18,8 @@
          row/3,
 
          copy_row/4,
+         flash_formula/1,
+
          get_cell/3,
          set_cell/4,
          set_cell/5
@@ -60,10 +62,6 @@ sheet(PID, Name) when is_list(Name) ->
       R :: non_neg_integer().
 row(PID, SheetName, R) -> 
     Sheet = sheet(PID, SheetName),
-    Formulas0 = xmerl_xpath:string("//table:table-cell[@table:formula]", Sheet),
-    Formulas1 = [erlodf_xml:update_value(Cell, "") || Cell <- Formulas0],
-    Formulas2 = [erlodf_xml:update_attribute('office:value', Cell, "") || Cell <- Formulas1],
-    [erlodf_document:update_body(PID, Formula) || Formula <- Formulas2],
     Nodes = get_nodes(Sheet, ".//table:table-row"),
     %io:format("Row: ~p, Len: ~p~n", [R, length(Nodes)]),
     case unpack_repeated(Nodes, 'table:number-rows-repeated', R, PID) of
@@ -74,6 +72,14 @@ row(PID, SheetName, R) ->
             lists:nth(R, Nodes1)
     end.
 
+-spec flash_formula(Document) -> [pid()] when
+      Document :: #xmlElement{}.
+flash_formula(Document) ->
+    Formulas0 = xmerl_xpath:string("//table:table-cell[@table:formula]", Document),
+    Formulas1 = [erlodf_xml:update_value(Cell, "") || Cell <- Formulas0],
+    %Formulas2 =
+    [erlodf_xml:update_attribute('office:value', Cell, "") || Cell <- Formulas1].
+    %[erlodf_document:update_body(PID, Formula) || Formula <- Formulas2].
 
 -spec cell(pid(), Sheet, RC) -> #xmlElement{} when 
       Sheet :: string(),

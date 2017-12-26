@@ -170,27 +170,34 @@ handle_update(Node, #odf_file{xml=XML}=State) ->
     XML1 = erlodf_xml:update_tree(XML, Node),
     State#odf_file{xml=XML1, modified=true}.
 
-handle_flash(#odf_file{xml=XML}=State) ->
-    Data = unicode:characters_to_binary(xmerl:export_simple([XML], xmerl_xml)),
+handle_flash(#odf_file{xml=XML0}=State) ->
+    XML1 = erlodf_xml:update_tree(XML0, 
+                                  erlodf_spreadsheet:flash_formula(XML0)),
+    Data = unicode:characters_to_binary(xmerl:export_simple([XML1], xmerl_xml)),
     {XML2, _R} = xmerl_scan:string(binary_to_list(Data)),
     State#odf_file{xml=XML2, modified=false, data=Data}.
 
-handle_save(#odf_file{name=Filename, modified=false, data=Data}) ->
+handle_save(#odf_file{name=Filename, modified=false, data=Data}=State) ->
+    save_out(State),
     {Filename, Data};
-handle_save(#odf_file{name=Filename, data=Data, modified=true, xml=XML}) ->
-    Binary = unicode:characters_to_binary(xmerl:export_simple([XML], xmerl_xml)),
-    save_debug(XML, Filename, Binary, Data),
-    {Filename, Binary}.
+handle_save(#odf_file{modified=true}=State) ->
+    save_in(State),
+    handle_save(
+      handle_flash(State)).
 
 -ifdef(DEBUG).
-save_debug(XML, Filename, Binary, Data) ->
+save_in(#odf_file{xml=XML, name=Filename, data=Data}) ->
     {ok, F} = file:open("content.erl", [write]),
     io:format(F, "~p", [XML]),
     file:close(F),
-    file:write_file("out/" ++ Filename, Binary),
     file:write_file("in/" ++ Filename, Data).
+
+save_out(#odf_file{name=Filename, data=Data}) ->
+    file:write_file("out/" ++ Filename, Data).
 -else.
-save_debug(_XML, _Filename, _Binary, _Data) ->
+save_in(_) ->
+    ok.
+save_out(_) ->
     ok.
 -endif.
 
