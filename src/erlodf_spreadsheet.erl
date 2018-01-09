@@ -66,20 +66,12 @@ row(PID, SheetName, R) ->
     %io:format("Row: ~p, Len: ~p~n", [R, length(Nodes)]),
     case unpack_repeated(Nodes, 'table:number-rows-repeated', R, PID) of
         recurse ->
+            io:format("Recurse row: ~p~n", [R]),
             row(PID, SheetName, R);
         Nodes1 ->
-            %io:format("R: ~p Length: ~p~n", [R, [N#xmlElement.name || N <- Nodes1]]),
+            %io:format("Row: ~p Length: ~p~n", [R, [N#xmlElement.name || N <- Nodes1]]),
             lists:nth(R, Nodes1)
     end.
-
--spec flash_formula(Document) -> [pid()] when
-      Document :: #xmlElement{}.
-flash_formula(Document) ->
-    Formulas0 = xmerl_xpath:string("//table:table-cell[@table:formula]", Document),
-    Formulas1 = [erlodf_xml:update_value(Cell, "") || Cell <- Formulas0],
-    %Formulas2 =
-    [erlodf_xml:update_attribute('office:value', Cell, "") || Cell <- Formulas1].
-    %[erlodf_document:update_body(PID, Formula) || Formula <- Formulas2].
 
 -spec cell(pid(), Sheet, RC) -> #xmlElement{} when 
       Sheet :: string(),
@@ -93,7 +85,7 @@ cell(PID, Sheet, [RL | CN]) ->
 cell(PID, SheetName, {R, C}=RC) -> 
     Row = row(PID, SheetName, R),
     Nodes = get_nodes(Row, ".//table:table-cell | //table:covered-table-cell"),
-    case unpack_repeated(Nodes, 'table:number-columns-repeated', R, PID) of
+    case unpack_repeated(Nodes, 'table:number-columns-repeated', C, PID) of
         recurse ->
             cell(PID, SheetName, RC);
         Nodes1 ->
@@ -132,6 +124,13 @@ set_cell(PID, Sheet, Cell, Value, Type) ->
     erlodf_document:update_body(PID, update_cell_value(Cell3, Value, Type)),
     PID.
 
+-spec flash_formula(Document) -> [pid()] when
+      Document :: #xmlElement{}.
+flash_formula(Document) ->
+    Formulas0 = xmerl_xpath:string("//table:table-cell[@table:formula]", Document),
+    Formulas1 = [erlodf_xml:update_value(Cell, "") || Cell <- Formulas0],
+    [erlodf_xml:update_attribute('office:value', Cell, "") || Cell <- Formulas1].
+
 get_nodes(BaseNode, XPath) -> 
      lists:keysort(#xmlElement.pos,
                    xmerl_xpath:string(XPath, BaseNode)).   
@@ -161,6 +160,7 @@ fix_pos(#xmlElement{pos=Pos0, name=Tag0, content=Nodes0}=Node0) ->
     Node0#xmlElement{content=fix_pos(Nodes0, Tag0, Pos0)};
 fix_pos(Nodes0) when is_list(Nodes0) ->
     [Node0|_] = Nodes = lists:reverse(Nodes0),
+    io:format("Fix nodes: ~p~n", [length(Nodes0)]),
     Pos0 = Node0#xmlElement.pos,
     Poses = lists:seq(Pos0, Pos0 - 1 + length(Nodes)),
     [fix_pos(Node#xmlElement{pos=Pos}) 
@@ -190,8 +190,8 @@ update_tree(Nodes, Nodes0, _PID) when length(Nodes0) == length(Nodes) ->
     Nodes;
 update_tree(Nodes, Nodes0, PID) ->
     Nodes1 = filter_nodes(Nodes, Nodes0),
-    %io:format("Nodes: ~p Nodes0: ~p Nodes1: ~p~n", [length(Nodes), length(Nodes0), length(Nodes1)]),
-    erlodf_document:update_body(PID, Nodes1),
+    io:format("Nodes: ~p Nodes0: ~p Nodes1: ~p~n", [length(Nodes), length(Nodes0), length(Nodes1)]),
+    erlodf_document:update_body(PID, Nodes),
     recurse.
 
 update_cell_value(Cell, Value, float) ->

@@ -39,7 +39,7 @@ all() ->
      set_pdcked_cell_test,
      set_cell_with_type_test,
      set_cell_test,
-     %copy_empty_row_test,
+     copy_empty_row_test,
      copy_row_test
     ].
 
@@ -182,7 +182,7 @@ copy_row_test(C) ->
     {ok, Document1} = erlodf:open(Binary),
     
     % Test if rows before and after are correct (not overwrittten)
-    {ok, A7} = erlodf_spreadsheet:get_cell(Document1, 2, "A6"),
+    {ok, A7} = erlodf_spreadsheet:get_cell(Document1, 2, "A7"),
     ?assertEqual("4A", A7),
 
     {ok, A2} = erlodf_spreadsheet:get_cell(Document1, 2, "A2"),

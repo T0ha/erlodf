@@ -68,15 +68,17 @@ update_tree(XML, #xmlElement{}=Node) ->
 update_tree(XML, [#xmlElement{parents=Parent}|_]=Nodes) ->
     update_tree(XML, Nodes, lists:reverse(Parent)).
 
-update_tree(#xmlElement{name=Tag}, [#xmlElement{name=Tag}|_]=Nodes, []) ->
-    Nodes;
-update_tree(#xmlElement{content=Content}=XML, Nodes, []) ->
+%update_tree(#xmlElement{name=Tag}, [#xmlElement{name=Tag}|_]=Nodes, []) ->
+%    Nodes;
+update_tree(#xmlElement{name=Name, pos=Pos, content=Content}=XML, Nodes, []) ->
     Content1 = lists:ukeymerge(#xmlElement.pos, Nodes, Content),
+    %io:format("Tag: ~p Pos: ~p Content1: ~p~n", [Name, Pos, length(Content1)]),
     XML#xmlElement{content=Content1};
 update_tree(#xmlElement{name=Tag}=XML, Nodes, [{Tag, _N}|Rest]) ->
     update_tree(XML, Nodes, Rest);
-update_tree(#xmlElement{content=Content}=XML, Nodes, [{_SubTag, N}|Rest]) ->
+update_tree(#xmlElement{content=Content}=XML, [Node0|_]=Nodes, [{SubTag, N}|Rest]) ->
     Content1 = lists:flatten(replace_nth(Content, N, Nodes, Rest)),
+    %io:format("Content1({~p, ~p}): {~p, ~p} ~p~n", [SubTag, N, Node0#xmlElement.name, Node0#xmlElement.pos, length(Content1)]),
     XML#xmlElement{content=Content1}.
 
 replace_nth([], _, Nodes, []) ->
@@ -88,7 +90,17 @@ replace_nth([Content], 1, Nodes, Rest) ->
 replace_nth([H|Content], 1, Nodes, Rest) ->
     [update_tree(H, Nodes, Rest) | Content];
 replace_nth([H|Content], N, Nodes, Rest) ->
+    %Hs = unpack_repeated(H),
     lists:flatten([H | replace_nth(Content, N - 1, Nodes, Rest)]).
+
+unpack_repeated(#xmlElement{name='table:table-cell'}=Node) ->
+    N = attribute('table:number-columns-repeated', Node),
+    lists:duplicate(N, update_attribute('table:number-columns-repeated', Node, 1));
+unpack_repeated(#xmlElement{name='table:table-row'}=Node) ->
+    N = attribute('table:number-rows-repeated', Node),
+    lists:duplicate(N, update_attribute('table:number-rows-repeated', Node, 1));
+unpack_repeated(Node) ->
+    [Node].
 
 attribute(AttrName, Node) ->
     attribute(AttrName, Node, undefined).
