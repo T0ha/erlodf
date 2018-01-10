@@ -160,7 +160,7 @@ fix_pos(#xmlElement{pos=Pos0, name=Tag0, content=Nodes0}=Node0) ->
     Node0#xmlElement{content=fix_pos(Nodes0, Tag0, Pos0)};
 fix_pos(Nodes0) when is_list(Nodes0) ->
     [Node0|_] = Nodes = lists:reverse(Nodes0),
-    io:format("Fix nodes: ~p~n", [length(Nodes0)]),
+    %io:format("Fix nodes: ~p~n", [length(Nodes0)]),
     Pos0 = Node0#xmlElement.pos,
     Poses = lists:seq(Pos0, Pos0 - 1 + length(Nodes)),
     [fix_pos(Node#xmlElement{pos=Pos}) 
@@ -190,7 +190,7 @@ update_tree(Nodes, Nodes0, _PID) when length(Nodes0) == length(Nodes) ->
     Nodes;
 update_tree(Nodes, Nodes0, PID) ->
     Nodes1 = filter_nodes(Nodes, Nodes0),
-    io:format("Nodes: ~p Nodes0: ~p Nodes1: ~p~n", [length(Nodes), length(Nodes0), length(Nodes1)]),
+    %io:format("Nodes: ~p Nodes0: ~p Nodes1: ~p~n", [length(Nodes), length(Nodes0), length(Nodes1)]),
     erlodf_document:update_body(PID, Nodes),
     recurse.
 
