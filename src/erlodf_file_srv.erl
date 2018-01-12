@@ -185,7 +185,7 @@ handle_save(#odf_file{modified=true}=State) ->
     handle_save(
       handle_flash(State)).
 
--ifdef(DEBUG).
+-ifndef(DEBUG).
 save_in(#odf_file{xml=XML, name=Filename, data=Data}) ->
     {ok, F} = file:open("content.erl", [write]),
     io:format(F, "~p", [XML]),

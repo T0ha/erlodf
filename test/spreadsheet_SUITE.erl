@@ -91,7 +91,10 @@ get_cell_test(C) ->
     Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
     {ok, Document} = erlodf:open(Path),
     {ok, Text} = erlodf_spreadsheet:get_cell(Document, 1, "B2"),
-    ?assertEqual("BTC/USDT", Text).
+    ?assertEqual("BTC/USDT", Text),
+
+    {ok, Text1} = erlodf_spreadsheet:get_cell(Document, 3, "B3"),
+    ?assertEqual("3B", Text1).
 
 get_cell_with_type_test(C) ->
     Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
@@ -132,8 +135,8 @@ set_cell_test(C) ->
     Cell0 = erlodf_spreadsheet:cell(Document, 1, "F8"),
     empty = erlodf_xml:value(Cell0),
     ?assertEqual('table:table-cell', Cell0#xmlElement.name),
-    %?assertEqual("", Text0),
     Document = erlodf_spreadsheet:set_cell(Document, 1, "F8", "Check Me", text),
+    Document = erlodf_spreadsheet:set_cell(Document, 3, "B3", "After Empty", text),
     Binary = erlodf:save(Document),
     %file:write_file("out.ods", Binary),
     %ok=erlodf:close(Document),
@@ -141,7 +144,10 @@ set_cell_test(C) ->
     {ok, Document1} = erlodf:open(Binary),
 
     {ok, Text1} = erlodf_spreadsheet:get_cell(Document1, 1, "F8"),
-    ?assertEqual("Check Me", Text1).
+    ?assertEqual("Check Me", Text1),
+
+    {ok, Text2} = erlodf_spreadsheet:get_cell(Document1, 3, "B3"),
+    ?assertEqual("After Empty", Text2).
 
 set_cell_with_type_test(C) ->
     Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
@@ -216,8 +222,8 @@ copy_empty_row_test(C) ->
     {ok, Document1} = erlodf:open(Binary),
     
     % Test if rows before and after are correct (not overwrittten)
-    {ok, A7} = erlodf_spreadsheet:get_cell(Document1, 3, "A7"),
-    ?assertEqual("3A", A7), %TODO: It should be A6, but it's get_cell issue
+    {ok, A6} = erlodf_spreadsheet:get_cell(Document1, 3, "A6"),
+    ?assertEqual("3A", A6),
 
     {ok, A1} = erlodf_spreadsheet:get_cell(Document1, 3, "A1"),
     ?assertEqual("1A", A1),
@@ -238,9 +244,13 @@ copy_empty_row_test(C) ->
     % Change copied cells
     erlodf_spreadsheet:set_cell(Document1, 3, "B4", "B4N"),
     erlodf_spreadsheet:set_cell(Document1, 3, "B5", "B5N"),
+    erlodf_spreadsheet:set_cell(Document1, 3, "B6", "B6N"),
 
     {ok, N_B4} = erlodf_spreadsheet:get_cell(Document1, 3, "B4"),
     ?assertEqual("B4N", N_B4),
 
     {ok, N_B5} = erlodf_spreadsheet:get_cell(Document1, 3, "B5"),
-    ?assertEqual("B5N", N_B5).
+    ?assertEqual("B5N", N_B5),
+
+    {ok, N_B6} = erlodf_spreadsheet:get_cell(Document1, 3, "B6"),
+    ?assertEqual("B6N", N_B6).

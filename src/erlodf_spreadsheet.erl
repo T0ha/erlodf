@@ -83,10 +83,12 @@ cell(PID, Sheet, [RL | CN]) ->
     RC = {list_to_integer(CN), RU - $A + 1},
     cell(PID, Sheet, RC);
 cell(PID, SheetName, {R, C}=RC) -> 
+    io:format("R: ~p, C: ~p~n", [R, C]),
     Row = row(PID, SheetName, R),
-    Nodes = get_nodes(Row, ".//table:table-cell | //table:covered-table-cell"),
+    Nodes = get_nodes(Row, ".//table:table-cell|.//table:covered-table-cell"),
     case unpack_repeated(Nodes, 'table:number-columns-repeated', C, PID) of
         recurse ->
+            io:format("Recurse cell: ~p~n", [RC]),
             cell(PID, SheetName, RC);
         Nodes1 ->
             lists:nth(C, Nodes1)
@@ -121,7 +123,7 @@ set_cell(PID, Sheet, Cell, Value, Type) ->
     Cell1 = erlodf_xml:update_value(Cell0, Value),
     Cell2 = erlodf_xml:update_attribute('office:value-type', Cell1, Type),
     Cell3 = erlodf_xml:update_attribute('calcext:value-type', Cell2, Type),
-    erlodf_document:update_body(PID, update_cell_value(Cell3, Value, Type)),
+    erlodf_document:update_body(PID, [update_cell_value(Cell3, Value, Type)]),
     PID.
 
 -spec flash_formula(Document) -> [pid()] when
@@ -136,6 +138,7 @@ get_nodes(BaseNode, XPath) ->
                    xmerl_xpath:string(XPath, BaseNode)).   
     
 unpack_repeated(Nodes, Tag, R, PID) -> 
+    io:format("Unpack nodes {~p, ~p}: ~p~n", [Tag, R, length(Nodes)]),
     update_tree(
       fix_pos(
         maybe_add_node(
@@ -152,15 +155,17 @@ unpack(Current, Acc, Tag, _R) ->
     lists:duplicate(Repeated, CurrentU) ++ Acc.
    
 maybe_add_node(Nodes, Length) when length(Nodes) >= Length ->
+    io:format("May be add: ~p >= ~p~n", [length(Nodes), Length]),
     Nodes;
 maybe_add_node([Node | _] = Nodes, Length) ->
+    io:format("May be add: ~p < ~p~n", [length(Nodes), Length]),
     lists:duplicate(Length - length(Nodes), Node) ++ Nodes.
 
 fix_pos(#xmlElement{pos=Pos0, name=Tag0, content=Nodes0}=Node0) ->
     Node0#xmlElement{content=fix_pos(Nodes0, Tag0, Pos0)};
 fix_pos(Nodes0) when is_list(Nodes0) ->
     [Node0|_] = Nodes = lists:reverse(Nodes0),
-    %io:format("Fix nodes: ~p~n", [length(Nodes0)]),
+    io:format("Fix nodes: ~p~n", [length(Nodes0)]),
     Pos0 = Node0#xmlElement.pos,
     Poses = lists:seq(Pos0, Pos0 - 1 + length(Nodes)),
     [fix_pos(Node#xmlElement{pos=Pos}) 
@@ -190,7 +195,7 @@ update_tree(Nodes, Nodes0, _PID) when length(Nodes0) == length(Nodes) ->
     Nodes;
 update_tree(Nodes, Nodes0, PID) ->
     Nodes1 = filter_nodes(Nodes, Nodes0),
-    %io:format("Nodes: ~p Nodes0: ~p Nodes1: ~p~n", [length(Nodes), length(Nodes0), length(Nodes1)]),
+    io:format("Nodes: ~p Nodes0: ~p Nodes1: ~p~n", [length(Nodes), length(Nodes0), length(Nodes1)]),
     erlodf_document:update_body(PID, Nodes),
     recurse.
 
