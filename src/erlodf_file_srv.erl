@@ -171,8 +171,11 @@ handle_update(Node, #odf_file{xml=XML}=State) ->
     State#odf_file{xml=XML1, modified=true}.
 
 handle_flash(#odf_file{xml=XML0}=State) ->
-    XML1 = erlodf_xml:update_tree(XML0, 
-                                  erlodf_spreadsheet:flash_formula(XML0)),
+    XML1 = lists:foldl(fun(C, XML) ->
+                               erlodf_xml:update_tree(XML, C)
+                       end,
+                       XML0,
+                       erlodf_spreadsheet:flash_formula(XML0)),
     Data = unicode:characters_to_binary(xmerl:export_simple([XML1], xmerl_xml)),
     {XML2, _R} = xmerl_scan:string(binary_to_list(Data)),
     State#odf_file{xml=XML2, modified=false, data=Data}.

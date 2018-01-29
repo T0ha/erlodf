@@ -17,7 +17,8 @@
          set_cell_with_type_test/1,
          set_pdcked_cell_test/1,
          copy_empty_row_test/1,
-         copy_row_test/1
+         copy_row_test/1,
+         flash_formula_test/1
         ]).
 
 -include_lib("common_test/include/ct.hrl").
@@ -40,7 +41,8 @@ all() ->
      set_cell_with_type_test,
      set_cell_test,
      copy_empty_row_test,
-     copy_row_test
+     copy_row_test,
+     flash_formula_test
     ].
 
 init_per_testcase(_, C) ->
@@ -55,7 +57,7 @@ sheets_test(C) ->
     Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
     {ok, Document} = erlodf:open(Path),
     Sheets = erlodf_spreadsheet:sheets(Document),
-    ?assertEqual(3, length(Sheets)).
+    ?assertEqual(4, length(Sheets)).
 
 sheet_by_name_test(C) ->
     Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
@@ -254,3 +256,28 @@ copy_empty_row_test(C) ->
 
     {ok, N_B6} = erlodf_spreadsheet:get_cell(Document1, 3, "B6"),
     ?assertEqual("B6N", N_B6).
+
+
+flash_formula_test(C) -> 
+    Path = proplists:get_all_values(data_dir, C) ++ "/test.ods",
+    {ok, Document} = erlodf:open(Path),
+
+    erlodf_spreadsheet:set_cell(Document, "Formulas", "B6", 100),
+    erlodf_spreadsheet:set_cell(Document, "Formulas", "B7", 223),
+
+    Binary = erlodf:save(Document),
+    {ok, Document1} = erlodf:open(Binary),
+
+    {ok, ""} = erlodf_spreadsheet:get_cell(Document1, "Formulas", "C6"),
+    {ok, ""} = erlodf_spreadsheet:get_cell(Document1, "Formulas", "C7"),
+
+    % Bug found in production
+    {ok, ""} = erlodf_spreadsheet:get_cell(Document1, "Formulas", "D2"),
+    {ok, ""} = erlodf_spreadsheet:get_cell(Document1, "Formulas", "E2"),
+    {ok, ""} = erlodf_spreadsheet:get_cell(Document1, "Formulas", "F2"),
+    {ok, ""} = erlodf_spreadsheet:get_cell(Document1, "Formulas", "G2"),
+    {ok, ""} = erlodf_spreadsheet:get_cell(Document1, "Formulas", "H2"),
+    {ok, ""} = erlodf_spreadsheet:get_cell(Document1, "Formulas", "I2").
+
+
+
